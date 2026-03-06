@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -325,28 +324,24 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     PlayPauseToggleEvent event,
     Emitter<PlayerBlocState> emit,
   ) async {
-    if (state is PlayerBlocState) {
-      final currentState = state as PlayerBlocState;
-      if (currentState.isPlaying) {
-        add(const PauseEvent());
-      } else {
-        add(const PlayEvent());
-      }
+    final currentState = state;
+    if (currentState.isPlaying) {
+      add(const PauseEvent());
+    } else {
+      add(const PlayEvent());
     }
-  }
+    }
 
   Future<void> _onNextTrack(
     NextTrackEvent event,
     Emitter<PlayerBlocState> emit,
   ) async {
     try {
-      if (state is PlayerBlocState) {
-        final currentState = state as PlayerBlocState;
-        if (currentState.canPlayNext) {
-          await _audioPlayer.seekToNext();
-        }
+      final currentState = state;
+      if (currentState.canPlayNext) {
+        await _audioPlayer.seekToNext();
       }
-    } catch (e) {
+        } catch (e) {
       add(AudioErrorEvent('Error al cambiar a siguiente: $e'));
     }
   }
@@ -356,13 +351,11 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     Emitter<PlayerBlocState> emit,
   ) async {
     try {
-      if (state is PlayerBlocState) {
-        final currentState = state as PlayerBlocState;
-        if (currentState.canPlayPrevious) {
-          await _audioPlayer.seekToPrevious();
-        }
+      final currentState = state;
+      if (currentState.canPlayPrevious) {
+        await _audioPlayer.seekToPrevious();
       }
-    } catch (e) {
+        } catch (e) {
       add(AudioErrorEvent('Error al cambiar a anterior: $e'));
     }
   }
