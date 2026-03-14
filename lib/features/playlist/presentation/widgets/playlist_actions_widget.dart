@@ -186,8 +186,8 @@ class PlaylistActionsWidget extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   // Botón de descarga (solo visual por ahora)
-                  IconButton(
-                    icon: const Icon(
+                  const IconButton(
+                    icon: Icon(
                       Icons.download_outlined,
                       color: Colors.white,
                       size: 28,
