@@ -4,8 +4,6 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
-import 'package:music_app/core/services/network/api_services.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
 import 'package:music_app/core/utils/bottom_sheet_visibility.dart';
 import 'package:music_app/features/downloads/presentation/cubit/downloads_cubit.dart';
@@ -45,7 +43,6 @@ class DownloadOptionTile extends StatefulWidget {
 
 class _DownloadOptionTileState extends State<DownloadOptionTile> {
   DownloadsCubit? _cubit;
-  bool _isLoadingStreamUrl = false;
   String? _streamUrl;
   bool _isInitialized = false;
   StreamSubscription<DownloadsState>? _subscription;
@@ -84,45 +81,6 @@ class _DownloadOptionTileState extends State<DownloadOptionTile> {
         debugPrint('Error initializing DownloadsCubit: $e');
       }
     }
-  }
-
-  Future<String?> _getStreamUrl() async {
-    if (_streamUrl != null && _streamUrl!.isNotEmpty) {
-      return _streamUrl;
-    }
-
-    if (_isLoadingStreamUrl) return null;
-
-    setState(() {
-      _isLoadingStreamUrl = true;
-    });
-
-    try {
-      final apiServices = GetIt.I.get<ApiServices>();
-      final response = await apiServices.get('/music/stream/${widget.videoId}');
-      // ignore: avoid_dynamic_calls
-      final data = response is Map ? response : (response.data as Map?);
-
-      if (data != null) {
-        final streamUrl = data['streamUrl'] as String?;
-        if (streamUrl != null && streamUrl.isNotEmpty) {
-          setState(() {
-            _streamUrl = streamUrl;
-            _isLoadingStreamUrl = false;
-          });
-          return streamUrl;
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error getting stream URL: $e');
-      }
-    }
-
-    setState(() {
-      _isLoadingStreamUrl = false;
-    });
-    return null;
   }
 
   @override
@@ -224,21 +182,6 @@ class _DownloadOptionTileState extends State<DownloadOptionTile> {
       );
     }
 
-    // No descargado - iniciar descarga
-    if (_isLoadingStreamUrl) {
-      return const ListTile(
-        leading: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-        title: Text(
-          'Obteniendo URL de descarga...',
-          style: TextStyle(color: AppColorsDark.onSurface),
-        ),
-      );
-    }
-
     return ListTile(
       leading: Icon(
         widget.icon,
@@ -253,11 +196,7 @@ class _DownloadOptionTileState extends State<DownloadOptionTile> {
   }
 
   Future<void> _startDownload() async {
-    String? streamUrl = _streamUrl;
-
-    if (streamUrl == null || streamUrl.isEmpty) {
-      streamUrl = await _getStreamUrl();
-    }
+    final streamUrl = _streamUrl;
 
     if (streamUrl == null || streamUrl.isEmpty) {
       if (mounted) {

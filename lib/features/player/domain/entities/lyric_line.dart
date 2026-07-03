@@ -10,6 +10,11 @@ class LyricLine {
     required this.index,
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si la línea lírica es únicamente un salto de formato o un separador visual
+  bool get isBlank => text.trim().isEmpty;
+
   /// Parsea lyrics con timestamps del formato: [MM:SS.xx]texto
   static List<LyricLine> parseLyrics(
     String? lyrics, {

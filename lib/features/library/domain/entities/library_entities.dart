@@ -14,6 +14,17 @@ class LibrarySummaryEntity extends Equatable {
     this.recentlyPlayed,
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si el usuario posee alguna entidad favorita guardada
+  bool get hasFavorites => 
+    favoriteSongsCount > 0 || 
+    favoritePlaylistsCount > 0 || 
+    favoriteGenresCount > 0;
+
+  /// Verifica si el usuario ha registrado actividad reciente
+  bool get hasRecentActivity => recentlyPlayed != null && recentlyPlayed!.isNotEmpty;
+
   @override
   List<Object?> get props => [
     favoriteSongsCount,
@@ -42,6 +53,20 @@ class FavoriteSongEntity extends Equatable {
     this.duration,
     this.addedAt,
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Indica si la canción tiene información válida de artista
+  bool get hasArtist => artist != null && artist!.trim().isNotEmpty;
+
+  /// Indica si la canción cuenta con un recurso visual válido
+  bool get hasThumbnail => thumbnail != null && thumbnail!.trim().isNotEmpty;
+
+  /// Verifica si la canción fue añadida muy recientemente (por defecto, últimas 24hs)
+  bool isRecentlyAdded([Duration threshold = const Duration(hours: 24)]) {
+    if (addedAt == null) return false;
+    return DateTime.now().difference(addedAt!) <= threshold;
+  }
 
   @override
   List<Object?> get props => [
@@ -73,6 +98,17 @@ class FavoritePlaylistEntity extends Equatable {
     this.trackCount,
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si la lista cuenta con descripción personalizada
+  bool get hasDescription => description != null && description!.trim().isNotEmpty;
+
+  /// Verifica si la lista tiene miniatura asignada
+  bool get hasThumbnail => thumbnail != null && thumbnail!.trim().isNotEmpty;
+
+  /// Indica si la lista de reproducción propia no posee canciones
+  bool get isEmpty => trackCount == 0 || trackCount == null;
+
   @override
   List<Object?> get props => [
     id,
@@ -95,6 +131,11 @@ class FavoriteGenreEntity extends Equatable {
     required this.externalParams,
     this.name,
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si tiene parámetros externos válidos para navegación
+  bool get hasValidParams => externalParams.trim().isNotEmpty;
 
   @override
   List<Object?> get props => [id, externalParams, name];

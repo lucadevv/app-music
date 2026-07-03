@@ -76,7 +76,9 @@ class LibraryRemoteDataSource {
     }
   }
 
-  /// Add song to favorites
+  /// Add song to favorites.
+  /// Backend only accepts {videoId, title, artist} — thumbnail and duration
+  /// are accepted as params for caller compatibility but NOT sent to the API.
   Future<void> addFavoriteSong({
     required String videoId,
     String? title,
@@ -87,13 +89,7 @@ class LibraryRemoteDataSource {
     try {
       await _api.post(
         '/library/songs',
-        data: {
-          'videoId': videoId,
-          'title': ?title,
-          'artist': ?artist,
-          'thumbnail': ?thumbnail,
-          'duration': ?duration,
-        },
+        data: {'videoId': videoId, 'title': title, 'artist': artist},
       );
     } catch (e) {
       rethrow;
@@ -109,7 +105,9 @@ class LibraryRemoteDataSource {
     }
   }
 
-  /// Check if song is favorite
+  /// Check if song is favorite.
+  /// NOTE: The backend endpoint /library/songs/:videoId/check currently returns 500.
+  /// We gracefully return false on any error — if we can't verify, assume not favorite.
   Future<bool> isSongFavorite(String videoId) async {
     try {
       final response = await _api.get('/library/songs/$videoId/check');

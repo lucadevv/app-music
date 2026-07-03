@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
-import 'package:music_app/features/favorites/presentation/cubit/favorite_cubit.dart';
 import 'package:music_app/features/favorites/presentation/widgets/favorite_button.dart';
 import 'package:music_app/features/library/data/models/library_models.dart';
+import 'package:music_app/features/library/domain/entities/favorite_type.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
 import 'package:music_app/features/player/domain/types/player_types.dart';
 import 'package:music_app/features/playlist/domain/entities/playlist_response.dart';
@@ -23,8 +23,8 @@ class PlaylistActionsWidget extends StatelessWidget {
     return sortedThumbnails.first.url;
   }
 
-  bool _isCurrentPlaylistPlaying(PlayerBlocState playerState) {
-    return playerState.sourceId == playlist.id && playerState.isPlaying;
+  bool _isCurrentPlaylist(PlayerBlocState playerState) {
+    return playerState.sourceId == playlist.id;
   }
 
   @override
@@ -48,7 +48,7 @@ class PlaylistActionsWidget extends StatelessWidget {
             builder: (context, playerState) {
               final loadingPlaylistId = playlistState.loadingPlaylistId;
               final isThisPlaylistLoading = loadingPlaylistId == playlist.id;
-              final isCurrentPlaylist = _isCurrentPlaylistPlaying(playerState);
+              final isCurrentPlaylist = _isCurrentPlaylist(playerState);
               final isPlaying = playerState.isPlaying;
 
               final showPause = isCurrentPlaylist && isPlaying;

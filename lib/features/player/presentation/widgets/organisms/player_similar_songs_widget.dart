@@ -1,10 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:music_app/core/services/network/api_services.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
 import 'package:music_app/features/home/presentation/widgets/organisms/home_shimmer.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
@@ -123,77 +122,58 @@ class _PlayerSimilarSongsContent extends StatelessWidget {
           videoId: track.videoId,
           thumbnail: track.thumbnail,
           durationSeconds: track.durationSeconds,
-          onTap: () => _playTrack(
-            context: context,
-            videoId: track.videoId,
-            title: track.title,
-            artist: track.displayArtist,
-            thumbnailUrl: track.thumbnail,
-            streamUrl: track.streamUrl,
-            duration: track.length ?? '0:00',
-          ),
+          onTap: () => _playTrack(context, state, track.videoId),
         );
       }).toList(),
     );
   }
 
-  Future<void> _playTrack({
-    required BuildContext context,
-    required String videoId,
-    required String title,
-    required String artist,
-    required String? thumbnailUrl,
-    required String? streamUrl,
-    required String duration,
-  }) async {
-    int durationSeconds = 0;
-    try {
-      final parts = duration.split(':');
-      if (parts.length == 2) {
-        durationSeconds = int.parse(parts[0]) * 60 + int.parse(parts[1]);
-      } else if (parts.length == 3) {
-        durationSeconds =
-            int.parse(parts[0]) * 3600 +
-            int.parse(parts[1]) * 60 +
-            int.parse(parts[2]);
+  void _playTrack(
+    BuildContext context,
+    SimilarSongsState state,
+    String selectedVideoId,
+  ) {
+    if (state.tracks.isEmpty) return;
+
+    final playlist = state.tracks.map((track) {
+      int durationSeconds = track.durationSeconds;
+      if (durationSeconds == 0 && track.length != null) {
+        try {
+          final parts = track.length!.split(':');
+          if (parts.length == 2) {
+            durationSeconds = int.parse(parts[0]) * 60 + int.parse(parts[1]);
+          } else if (parts.length == 3) {
+            durationSeconds =
+                int.parse(parts[0]) * 3600 +
+                int.parse(parts[1]) * 60 +
+                int.parse(parts[2]);
+          }
+        } catch (_) {}
       }
-    } catch (_) {}
 
-    String? resolvedStreamUrl = streamUrl;
-    if (resolvedStreamUrl == null || resolvedStreamUrl.isEmpty) {
-      resolvedStreamUrl = await _fetchStreamUrl(videoId);
-    }
+      return NowPlayingData.fromBasic(
+        videoId: track.videoId,
+        title: track.title,
+        artistNames: [track.displayArtist],
+        albumName: 'Radio',
+        duration: track.length ?? '0:00',
+        durationSeconds: durationSeconds,
+        thumbnailUrl: track.thumbnail,
+        streamUrl: track.streamUrl,
+      );
+    }).toList();
 
-    final nowPlayingData = NowPlayingData.fromBasic(
-      videoId: videoId,
-      title: title,
-      artistNames: [artist],
-      albumName: 'Radio',
-      duration: duration,
-      durationSeconds: durationSeconds,
-      thumbnailUrl: thumbnailUrl,
-      streamUrl: resolvedStreamUrl,
-    );
+    var startIndex = playlist.indexWhere((t) => t.videoId == selectedVideoId);
+    if (startIndex == -1) startIndex = 0;
 
     if (context.mounted) {
       context.read<PlayerBlocBloc>().add(
-        LoadTrackEvent(nowPlayingData, sourceId: 'radio'),
+        LoadPlaylistEvent(
+          playlist: playlist,
+          startIndex: startIndex,
+          sourceId: 'radio',
+        ),
       );
-    }
-  }
-
-  Future<String?> _fetchStreamUrl(String videoId) async {
-    try {
-      final apiServices = GetIt.I.get<ApiServices>();
-      final response = await apiServices.get('/music/stream/$videoId');
-      // ignore: avoid_dynamic_calls
-      final data = response is Map ? response : (response.data as Map?);
-      return data?['streamUrl'] as String?;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error fetching streamUrl: $e');
-      }
-      return null;
     }
   }
 }
@@ -227,7 +207,7 @@ class _SimilarSongItem extends StatelessWidget {
           width: 48,
           height: 48,
           color: AppColorsDark.primaryContainer,
-          child: thumbnail != null
+          child: thumbnail != null && thumbnail!.isValidImageUrl
               ? CachedNetworkImage(
                   imageUrl: thumbnail!,
                   fit: BoxFit.cover,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
+import 'package:music_app/core/presentation/widgets/molecules/shared_media_card.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
 import 'package:music_app/features/library/domain/repositories/library_repository.dart';
 import 'package:music_app/features/library/domain/use_cases/create_user_playlist_use_case.dart';
@@ -10,7 +11,6 @@ import 'package:music_app/features/library/domain/use_cases/get_favorite_playlis
 import 'package:music_app/features/library/domain/use_cases/get_user_playlists_use_case.dart';
 import 'package:music_app/features/user_playlists/presentation/cubit/user_playlists_cubit.dart';
 import 'package:music_app/features/user_playlists/presentation/cubit/user_playlists_state.dart';
-import 'package:music_app/features/user_playlists/presentation/widgets/atoms/playlist_card_atom.dart';
 import 'package:music_app/features/user_playlists/presentation/widgets/molecules/user_playlists_empty_molecule.dart';
 import 'package:music_app/features/user_playlists/presentation/widgets/organisms/create_playlist_dialog_organism.dart';
 import 'package:music_app/features/user_playlists/presentation/widgets/organisms/user_playlists_loading_organism.dart';
@@ -137,10 +137,11 @@ class _UserPlaylistsView extends StatelessWidget {
       itemCount: playlists.length,
       itemBuilder: (context, index) {
         final playlist = playlists[index];
-        return PlaylistCardAtom(
-          name: playlist.name,
-          thumbnail: playlist.thumbnail,
-          songCount: playlist.songCount,
+        return SharedMediaCard(
+          title: playlist.name,
+          subtitle: '${playlist.songCount} songs',
+          imageUrl: playlist.thumbnail,
+          placeholderIcon: Icons.playlist_play,
           onTap: () {
             if (playlist.type == PlaylistType.user) {
               context.router.push(
@@ -152,6 +153,7 @@ class _UserPlaylistsView extends StatelessWidget {
               );
             }
           },
+          width: double.infinity,
         );
       },
     );

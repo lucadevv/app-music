@@ -50,13 +50,13 @@ class RecentlyPlayedSongModel extends RecentlyPlayedSong {
       }
     }
 
-    // Extraer stream_url de donde venga
+    // Extraer stream_url de donde venga (soporta snake_case y camelCase)
     String? streamUrl;
-    if (json['stream_url'] != null) {
-      streamUrl = json['stream_url'] as String?;
+    if (json['stream_url'] != null || json['streamUrl'] != null) {
+      streamUrl = (json['stream_url'] ?? json['streamUrl']) as String?;
     } else if (json['songData'] != null &&
         json['songData'] is Map<String, dynamic>) {
-      streamUrl = json['songData']['stream_url'] as String?;
+      streamUrl = (json['songData']['stream_url'] ?? json['songData']['streamUrl']) as String?;
     }
 
     return RecentlyPlayedSongModel(

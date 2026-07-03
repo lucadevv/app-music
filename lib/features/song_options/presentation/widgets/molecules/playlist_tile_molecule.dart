@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/library/data/models/library_models.dart';
 
 /// Molecule: Playlist tile for playlist selection
@@ -24,7 +25,7 @@ class PlaylistTileMolecule extends StatelessWidget {
           color: AppColorsDark.primaryContainer,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: playlist.thumbnail != null
+        child: playlist.thumbnail != null && playlist.thumbnail!.isValidImageUrl
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: CachedNetworkImage(

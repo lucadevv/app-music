@@ -16,4 +16,15 @@ class SearchResponse {
     this.albums = const [],
     this.artists = const [],
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si la respuesta arrojó algún tipo de resultado (canción, álbum o artista)
+  bool get hasAnyResults => results.isNotEmpty || albums.isNotEmpty || artists.isNotEmpty;
+
+  /// Verifica si la respuesta contiene exclusivamente canciones
+  bool get isOnlySongs => results.isNotEmpty && albums.isEmpty && artists.isEmpty;
+
+  /// Obtiene la cantidad total de elementos encontrados
+  int get totalResultsCount => results.length + albums.length + artists.length;
 }

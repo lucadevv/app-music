@@ -1,23 +1,20 @@
-import 'package:music_app/features/search/domain/entities/thumbnail.dart';
-
-/// Entidad para una playlist de mood/genre
 class MoodPlaylist {
+  final String playlistId;
   final String title;
-  final String itemCount;
-  final String author;
-  final String
-  browseId; // Este es el playlistId que se usa en /api/v1/playlists/{playlistId}
-  final List<Thumbnail> thumbnails;
-  final String category;
-  final String resultType;
+  final String? description;
+  final List<String>? thumbnail;
+  final String? videoCount;
 
   const MoodPlaylist({
+    required this.playlistId,
     required this.title,
-    required this.itemCount,
-    required this.author,
-    required this.browseId,
-    required this.thumbnails,
-    required this.category,
-    required this.resultType,
+    this.description,
+    this.thumbnail,
+    this.videoCount,
   });
+
+  bool get hasValidPlaylistId => playlistId.trim().isNotEmpty;
+
+  String? get bestThumbnail =>
+      thumbnail != null && thumbnail!.isNotEmpty ? thumbnail!.last : null;
 }

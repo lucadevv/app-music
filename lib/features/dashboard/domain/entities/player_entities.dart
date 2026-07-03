@@ -27,6 +27,23 @@ class PlayerStateEntity extends Equatable {
     this.volume = 1.0,
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Indica si hay una canción cargada en el reproductor
+  bool get hasCurrentSong => currentSong != null;
+
+  /// Indica si el reproductor está emitiendo sonido actualmente
+  bool get isPlaying => status == PlayerStatus.playing;
+
+  /// Indica si el reproductor está explícitamente en pausa
+  bool get isPaused => status == PlayerStatus.paused;
+
+  /// Calcula el porcentaje de progreso de reproducción (0.0 a 1.0)
+  double get progressPercentage {
+    if (duration.inMilliseconds == 0) return 0.0;
+    return (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
+  }
+
   @override
   List<Object?> get props => [
     currentSong,
@@ -55,6 +72,14 @@ class QueueEntity extends Equatable {
     this.currentIndex = 0,
     this.isShuffled = false,
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si la cola del reproductor no tiene ninguna canción
+  bool get isEmpty => songs.isEmpty;
+
+  /// Obtiene la cantidad total de canciones encoladas
+  int get totalSongs => songs.length;
 
   Song? get currentSong => songs.isNotEmpty && currentIndex < songs.length
       ? songs[currentIndex]

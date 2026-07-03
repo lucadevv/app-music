@@ -53,18 +53,16 @@ class ProfileRemoteDataSource {
     }
   }
 
-  /// Update user settings
+  /// Update user settings.
+  /// NOTE: PUT /users/me/settings does not exist on the backend (returns 404).
+  /// Only GET is supported. This throws an UnsupportedError to make the
+  /// backend limitation explicit rather than surfacing a cryptic 404.
   Future<UserSettingsModel> updateSettings(UserSettingsModel settings) async {
-    try {
-      final response = await _api.put(
-        '/users/me/settings',
-        data: settings.toJson(),
-      );
-      final data = response is Response ? response.data : response;
-      return UserSettingsModel.fromJson(data);
-    } catch (e) {
-      rethrow;
-    }
+    throw UnsupportedError(
+      'Settings update is not supported by the backend. '
+      'PUT /users/me/settings returns 404. '
+      'Only GET /users/me/settings is available.',
+    );
   }
 
   /// Get library statistics

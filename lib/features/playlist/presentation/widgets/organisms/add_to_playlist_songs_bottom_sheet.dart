@@ -2,6 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/playlist/domain/entities/playlist_track.dart';
 import 'package:music_app/features/song_options/presentation/widgets/song_options_bottom_sheet.dart';
 
@@ -91,7 +92,9 @@ class _TrackItem extends StatelessWidget {
           color: AppColorsDark.primaryContainer,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: track.thumbnails.isNotEmpty
+        child:
+            track.thumbnails.isNotEmpty &&
+                track.thumbnails.last.url.isValidImageUrl
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: CachedNetworkImage(

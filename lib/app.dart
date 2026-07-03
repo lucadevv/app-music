@@ -16,22 +16,19 @@ import 'package:music_app/features/downloads/domain/use_cases/get_downloaded_son
 import 'package:music_app/features/downloads/domain/use_cases/remove_download_use_case.dart';
 import 'package:music_app/features/downloads/presentation/cubit/downloads_cubit.dart';
 import 'package:music_app/features/favorites/presentation/cubit/favorite_cubit.dart';
-import 'package:music_app/features/library/domain/use_cases/add_favorite_genre_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/add_favorite_playlist_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/add_favorite_song_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_favorite_genres_with_mapping_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_favorite_playlists_with_mapping_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_favorite_songs_with_mapping_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/remove_favorite_genre_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/remove_favorite_playlist_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/remove_favorite_song_use_case.dart';
+import 'package:music_app/features/library/domain/use_cases/load_favorites_use_case.dart';
+import 'package:music_app/features/library/domain/use_cases/toggle_favorite_use_case.dart';
 import 'package:music_app/features/offline/domain/use_cases/delete_offline_playlist_use_case.dart';
 import 'package:music_app/features/offline/domain/use_cases/get_offline_playlists_use_case.dart';
 import 'package:music_app/features/offline/domain/use_cases/save_offline_playlist_use_case.dart';
 import 'package:music_app/features/offline/presentation/cubit/playlist_offline_cubit.dart';
 import 'package:music_app/features/player/domain/player_facade.dart';
 import 'package:music_app/features/player/domain/repositories/player_repository.dart';
+import 'package:music_app/features/player/domain/services/audio_session_controller.dart';
+import 'package:music_app/features/player/domain/strategies/network_playback_strategy.dart';
+import 'package:music_app/features/player/domain/strategies/offline_playback_strategy.dart';
 import 'package:music_app/features/player/domain/usecases/manage_history_use_case.dart';
+import 'package:music_app/features/player/infrastructure/just_audio_player_engine.dart';
 import 'package:music_app/features/profile/domain/use_cases/get_profile_use_case.dart';
 import 'package:music_app/features/profile/domain/use_cases/get_settings_use_case.dart';
 import 'package:music_app/features/profile/domain/use_cases/logout_use_case.dart';
@@ -90,13 +87,22 @@ class _AppState extends State<App> {
       _themeCubit = ThemeCubit(prefs);
       _localeCubit = LocaleCubit(prefs);
 
-      // Obtener AudioPlayerHandler para inyectarlo en PlayerBlocBloc
+      // Obtener AudioPlayerHandler y construir Motor
       final audioPlayerHandler = getIt<AudioPlayerHandler>();
-      _playerBlocBloc = PlayerBlocBloc(
-        playerHandler: audioPlayerHandler,
+      final engine = JustAudioPlayerEngine(audioPlayerHandler.player);
+
+      final sessionController = AudioSessionController(
+        engine: engine,
         repository: await getIt.getAsync<PlayerRepository>(),
         manageHistoryUseCase: getIt<ManageHistoryUseCase>(),
+        playerHandler: audioPlayerHandler,
+        strategies: [
+          OfflinePlaybackStrategy(await getIt.getAsync<PlayerRepository>()),
+          NetworkPlaybackStrategy(),
+        ],
       );
+
+      _playerBlocBloc = PlayerBlocBloc(sessionController: sessionController);
 
       // Conectar PlayerBlocBloc con AudioPlayerHandler para delegación de eventos
       audioPlayerHandler.playerBloc = _playerBlocBloc!;
@@ -120,18 +126,8 @@ class _AppState extends State<App> {
 
       // Crear FavoriteCubit (depende de UseCases, PlaylistOfflineCubit, OfflineService, PlayerBlocBloc)
       _favoriteCubit = FavoriteCubit(
-        getFavoriteSongsWithMappingUseCase:
-            getIt<GetFavoriteSongsWithMappingUseCase>(),
-        getFavoritePlaylistsWithMappingUseCase:
-            getIt<GetFavoritePlaylistsWithMappingUseCase>(),
-        getFavoriteGenresWithMappingUseCase:
-            getIt<GetFavoriteGenresWithMappingUseCase>(),
-        addFavoriteSongUseCase: getIt<AddFavoriteSongUseCase>(),
-        removeFavoriteSongUseCase: getIt<RemoveFavoriteSongUseCase>(),
-        addFavoritePlaylistUseCase: getIt<AddFavoritePlaylistUseCase>(),
-        removeFavoritePlaylistUseCase: getIt<RemoveFavoritePlaylistUseCase>(),
-        addFavoriteGenreUseCase: getIt<AddFavoriteGenreUseCase>(),
-        removeFavoriteGenreUseCase: getIt<RemoveFavoriteGenreUseCase>(),
+        loadFavoritesUseCase: getIt<LoadFavoritesUseCase>(),
+        toggleFavoriteUseCase: getIt<ToggleFavoriteUseCase>(),
         playlistOfflineCubit: _playlistOfflineCubit!,
         offlineService: offlineService,
         playerBloc: _playerBlocBloc!,

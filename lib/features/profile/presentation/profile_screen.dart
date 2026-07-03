@@ -18,20 +18,46 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ProfileCubit es singleton, ya está proporcionado en app.dart
-    // Cargar perfil al entrar si no está cargado
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final profileCubit = context.read<ProfileCubit>();
       if (!profileCubit.state.isLoading && profileCubit.state.profile == null) {
         profileCubit.loadProfile();
       }
     });
-    return const _ProfileView();
+    return const _ProfileContainer();
   }
 }
 
-class _ProfileView extends StatelessWidget {
-  const _ProfileView();
+class _ProfileContainer extends StatelessWidget {
+  const _ProfileContainer();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ProfileCubit, ProfileState>(
+      builder: (context, state) {
+        return _ProfilePresentationalView(
+          state: state,
+          onBackPressed: () => context.router.pop(),
+          onNavigateToSettings: () => context.router.push(const SettingsRoute()),
+          onNavigateToMyProfile: () => context.router.push(const MyProfileRoute()),
+        );
+      },
+    );
+  }
+}
+
+class _ProfilePresentationalView extends StatelessWidget {
+  final ProfileState state;
+  final VoidCallback onBackPressed;
+  final VoidCallback onNavigateToSettings;
+  final VoidCallback onNavigateToMyProfile;
+
+  const _ProfilePresentationalView({
+    required this.state,
+    required this.onBackPressed,
+    required this.onNavigateToSettings,
+    required this.onNavigateToMyProfile,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -55,67 +81,62 @@ class _ProfileView extends StatelessWidget {
             Icons.arrow_back_ios_new,
             color: AppColorsDark.onSurface,
           ),
-          onPressed: () => context.router.pop(),
+          onPressed: onBackPressed,
         ),
       ),
-      body: BlocBuilder<ProfileCubit, ProfileState>(
-        builder: (context, state) {
-          if (state.isLoading) {
-            return const ProfileLoadingOrganism();
-          }
+      body: _buildBody(l10n),
+    );
+  }
 
-          return ListView(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            children: [
-              // Profile header - clickeable para ir a My Profile
-              _ProfileHeader(
-                displayName: state.displayName,
-                email: state.email,
-                avatarUrl: state.avatarUrl,
-                initials: state.initials,
-              ),
+  Widget _buildBody(AppLocalizations l10n) {
+    if (state.isLoading) {
+      return const ProfileLoadingOrganism();
+    }
 
-              // Settings section
-              SettingsSectionMolecule(
-                title: l10n.settings,
-                items: [
-                  SettingsItemAtom(
-                    icon: Icons.settings,
-                    title: l10n.settings,
-                    onTap: () {
-                      context.router.push(const SettingsRoute());
-                    },
-                  ),
-                ],
-              ),
-            ],
-          );
-        },
-      ),
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      children: [
+        _ProfileHeader(
+          displayName: state.displayName,
+          email: state.email,
+          avatarUrl: state.avatarUrl,
+          initials: state.initials,
+          onTap: onNavigateToMyProfile,
+        ),
+        SettingsSectionMolecule(
+          title: l10n.settings,
+          items: [
+            SettingsItemAtom(
+              icon: Icons.settings,
+              title: l10n.settings,
+              onTap: onNavigateToSettings,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
 
-/// Organismo que muestra el header del perfil con avatar, nombre y email.
 class _ProfileHeader extends StatelessWidget {
   final String displayName;
   final String email;
   final String? avatarUrl;
   final String initials;
+  final VoidCallback onTap;
 
   const _ProfileHeader({
     required this.displayName,
     required this.email,
     required this.avatarUrl,
     required this.initials,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        context.router.push(const MyProfileRoute());
-      },
+      onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Row(

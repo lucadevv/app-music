@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
 import 'package:music_app/features/favorites/presentation/cubit/favorite_cubit.dart';
 import 'package:music_app/features/library/data/models/library_models.dart';
+import 'package:music_app/features/library/domain/entities/favorite_type.dart';
 
 class FavoriteButton extends StatefulWidget {
   final String videoId;

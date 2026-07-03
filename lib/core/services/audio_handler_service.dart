@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:music_app/core/services/media_item_mapper.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
 
@@ -79,7 +81,7 @@ class AudioPlayerHandler extends BaseAudioHandler
 
   /// Actualiza el mediaItem en las notificaciones con datos de NowPlayingData
   Future<void> updateNowPlaying(NowPlayingData track) async {
-    final mediaItem = track.toMediaItem();
+    final mediaItem = MediaItemMapper.fromNowPlayingData(track);
     this.mediaItem.add(mediaItem);
   }
 

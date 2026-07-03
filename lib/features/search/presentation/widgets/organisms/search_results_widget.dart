@@ -1,14 +1,12 @@
 // ignore_for_file: deprecated_member_use_from_same_package, unawaited_futures
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
 import 'package:music_app/core/domain/mappers/song_mapper.dart';
-import 'package:music_app/core/services/network/api_services.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/favorites/presentation/widgets/favorite_button.dart';
 import 'package:music_app/features/library/data/models/library_models.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
@@ -119,12 +117,6 @@ class _SongItem extends StatelessWidget {
       query,
     );
 
-    // ✅ Fetch streamUrl on demand si no existe
-    String? streamUrl = song.streamUrl;
-    if (streamUrl == null || streamUrl.isEmpty) {
-      streamUrl = await _fetchStreamUrl(song.videoId);
-    }
-
     // Crear NowPlayingData con streamUrl actualizado usando fromBasic
     final artistsNames = song.artists.map((a) => a.name).toList();
     final thumbnailUrl = song.thumbnails.isNotEmpty
@@ -142,31 +134,13 @@ class _SongItem extends StatelessWidget {
       isExplicit: song.isExplicit,
       inLibrary: song.inLibrary,
       thumbnailUrl: thumbnailUrl,
-      streamUrl: streamUrl,
+      streamUrl: song.streamUrl,
     );
 
-    // Navegar al player - es una canción individual
     if (context.mounted) {
       context.router.push(
         PlayerRoute(nowPlayingData: nowPlayingData, playAsSingle: true),
       );
-    }
-  }
-
-  /// Fetch streamUrl desde el backend
-  Future<String?> _fetchStreamUrl(String videoId) async {
-    try {
-      final apiServices = GetIt.I.get<ApiServices>();
-      final response = await apiServices.get('/music/stream/$videoId');
-      final Map<String, dynamic>? data = response is Map<String, dynamic>
-          ? response
-          : ((response as dynamic).data as Map<String, dynamic>?);
-      return data?['streamUrl'] as String?;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error fetching streamUrl: $e');
-      }
-      return null;
     }
   }
 
@@ -185,7 +159,7 @@ class _SongItem extends StatelessWidget {
               tag: 'song_artwork_${song.videoId}',
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: thumbnail != null
+                child: thumbnail != null && thumbnail.url.isValidImageUrl
                     ? CachedNetworkImage(
                         imageUrl: thumbnail.url,
                         width: 60,

@@ -2,13 +2,11 @@ import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
-import 'package:music_app/core/services/network/api_services.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/favorites/presentation/widgets/favorite_button.dart';
 import 'package:music_app/features/library/data/models/library_models.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
@@ -122,12 +120,6 @@ class _RecentSearchItem extends StatelessWidget {
           recentSearch.query,
         );
 
-        // ✅ Fetch streamUrl on demand si no existe
-        String? streamUrl = song.streamUrl;
-        if (streamUrl == null || streamUrl.isEmpty) {
-          streamUrl = await _fetchStreamUrl(song.videoId);
-        }
-
         // Crear NowPlayingData con streamUrl actualizado usando fromBasic
         final onTapArtistNames = song.artistNames.isNotEmpty
             ? song.artistNames
@@ -145,7 +137,7 @@ class _RecentSearchItem extends StatelessWidget {
           isExplicit: song.isExplicit,
           inLibrary: song.inLibrary,
           thumbnailUrl: onTapThumbnailUrl,
-          streamUrl: streamUrl,
+          streamUrl: song.streamUrl,
         );
 
         // Navegar al player y reproducir la canción - es individual
@@ -166,7 +158,7 @@ class _RecentSearchItem extends StatelessWidget {
               tag: 'song_artwork_${song.videoId}',
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: thumbnailUrl != null
+                child: thumbnailUrl != null && thumbnailUrl.isValidImageUrl
                     ? CachedNetworkImage(
                         imageUrl: thumbnailUrl,
                         width: 60,
@@ -287,22 +279,5 @@ class _RecentSearchItem extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// Fetch streamUrl desde el backend
-  Future<String?> _fetchStreamUrl(String videoId) async {
-    try {
-      final apiServices = GetIt.I.get<ApiServices>();
-      final response = await apiServices.get('/music/stream/$videoId');
-      final Map<String, dynamic>? data = response is Map<String, dynamic>
-          ? response
-          : ((response as dynamic).data as Map<String, dynamic>?);
-      return data?['streamUrl'] as String?;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error fetching streamUrl: $e');
-      }
-      return null;
-    }
   }
 }

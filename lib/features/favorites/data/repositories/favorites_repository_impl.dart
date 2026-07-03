@@ -20,15 +20,16 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
         page: page,
         limit: limit,
       );
-      // Convert FavoriteSongModel to Song using SongMapper
-      final songs = response.songs
+      // Map FavoriteSong (from library_models.dart) to core Song entity
+      final songs = response.data
           .map(
-            (model) => Song(
-              videoId: model.videoId,
-              title: model.title,
-              artist: model.artist ?? '',
-              thumbnail: model.thumbnail,
-              duration: model.durationSeconds?.toString() ?? '0',
+            (favSong) => Song(
+              videoId: favSong.videoId,
+              title: favSong.title,
+              artist: favSong.artist,
+              thumbnail: favSong.thumbnail,
+              streamUrl: favSong.streamUrl,
+              durationSeconds: favSong.duration ?? 0,
             ),
           )
           .toList();

@@ -4,6 +4,8 @@
 
 library;
 
+import 'package:music_app/core/domain/entities/playable_audio.dart';
+
 // ============ Metadata Classes ============
 
 class SongMetadata {
@@ -104,14 +106,18 @@ class FavoriteSongsResponse {
   }
 }
 
-class FavoriteSong {
+class FavoriteSong implements PlayableAudio {
+  @override
   final String id;
   final String songId;
   final String videoId;
+  @override
   final String title;
+  @override
   final String artist;
   final String? thumbnail;
   final int? duration;
+  @override
   final String? streamUrl;
   final DateTime createdAt;
 
@@ -141,6 +147,15 @@ class FavoriteSong {
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
     );
   }
+
+  @override
+  Duration get audioDuration => Duration(seconds: duration ?? 0);
+
+  @override
+  String? get bestThumbnail => thumbnail;
+
+  @override
+  bool get canPlay => streamUrl != null && streamUrl!.isNotEmpty;
 }
 
 // ============ Favorite Playlists ============
@@ -316,14 +331,27 @@ class UserPlaylistDetail {
   }
 }
 
-class UserPlaylistSong {
+class UserPlaylistSong implements PlayableAudio {
+  @override
   final String id;
   final String videoId;
+  @override
   final String title;
+  @override
   final String artist;
   final String? thumbnail;
   final int? duration;
+  @override
   final String? streamUrl;
+
+  @override
+  Duration get audioDuration => Duration(seconds: duration ?? 0);
+
+  @override
+  String? get bestThumbnail => thumbnail;
+
+  @override
+  bool get canPlay => true;
 
   UserPlaylistSong({
     required this.id,

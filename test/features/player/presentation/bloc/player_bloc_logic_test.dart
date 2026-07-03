@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
+import 'package:music_app/features/player/domain/types/player_types.dart';
 
+import '../../../../fakes/fake_player_engine.dart';
 import '../../../../helpers/test_helpers.dart';
 
 void main() {
@@ -12,7 +13,7 @@ void main() {
     late PlayerBlocBloc bloc;
 
     setUp(() {
-      bloc = createTestPlayerBloc();
+      bloc = createTestPlayerBloc(engine: FakePlayerEngine());
     });
 
     tearDown(() {
@@ -21,7 +22,7 @@ void main() {
 
     test('Estado inicial correcto', () {
       expect(bloc.state.playbackState, PlaybackState.stopped);
-      expect(bloc.state.processingState, ProcessingState.idle);
+      expect(bloc.state.processingState, ProcessingStateType.idle);
       expect(bloc.state.playlist, isEmpty);
       expect(bloc.state.currentTrack, isNull);
     });
@@ -233,7 +234,7 @@ void main() {
       const state = PlayerBlocState();
 
       expect(state.playbackState, PlaybackState.stopped);
-      expect(state.processingState, ProcessingState.idle);
+      expect(state.processingState, ProcessingStateType.idle);
       expect(state.playlist, isEmpty);
       expect(state.currentIndex, isNull);
       expect(state.currentTrack, isNull);
@@ -241,7 +242,7 @@ void main() {
       expect(state.duration, Duration.zero);
       expect(state.volume, 1.0);
       expect(state.speed, 1.0);
-      expect(state.loopMode, LoopMode.off);
+      expect(state.loopMode, LoopModeType.off);
       expect(state.isShuffleEnabled, isFalse);
       expect(state.error, isNull);
       expect(state.isLoading, isFalse);

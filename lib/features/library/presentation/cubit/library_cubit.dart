@@ -1,7 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_app/core/bloc/base_bloc_mixin.dart';
-import 'package:music_app/core/data/offline/models/offline_playlist.dart';
-import 'package:music_app/core/data/offline/services/offline_service.dart';
 import 'package:music_app/core/domain/entities/song.dart';
 import 'package:music_app/core/utils/exeptions/app_exceptions.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
@@ -9,50 +7,35 @@ import 'package:music_app/features/library/data/models/library_models.dart';
 import 'package:music_app/features/library/domain/entities/library_entities.dart';
 import 'package:music_app/features/library/domain/use_cases/add_favorite_song_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/create_user_playlist_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_favorite_genres_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_favorite_playlists_use_case.dart';
+import 'package:music_app/features/library/domain/use_cases/get_aggregated_library_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/get_favorite_songs_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_library_summary_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_user_playlists_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/remove_favorite_song_use_case.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
 
 part 'library_state.dart';
 
 class LibraryCubit extends Cubit<LibraryState> with BaseBlocMixin {
-  final GetLibrarySummaryUseCase _getLibrarySummaryUseCase;
+  final GetAggregatedLibraryUseCase _getAggregatedLibraryUseCase;
   final GetFavoriteSongsUseCase _getFavoriteSongsUseCase;
-  final GetFavoritePlaylistsUseCase _getFavoritePlaylistsUseCase;
-  final GetFavoriteGenresUseCase _getFavoriteGenresUseCase;
-  final GetUserPlaylistsUseCase _getUserPlaylistsUseCase;
   final AddFavoriteSongUseCase _addFavoriteSongUseCase;
   final RemoveFavoriteSongUseCase _removeFavoriteSongUseCase;
   final CreateUserPlaylistUseCase _createUserPlaylistUseCase;
-  final OfflineService _offlineService;
   final PlayerBlocBloc _playerBloc;
 
   static const int _pageSize = 10;
 
   LibraryCubit({
-    required GetLibrarySummaryUseCase getLibrarySummaryUseCase,
+    required GetAggregatedLibraryUseCase getAggregatedLibraryUseCase,
     required GetFavoriteSongsUseCase getFavoriteSongsUseCase,
-    required GetFavoritePlaylistsUseCase getFavoritePlaylistsUseCase,
-    required GetFavoriteGenresUseCase getFavoriteGenresUseCase,
-    required GetUserPlaylistsUseCase getUserPlaylistsUseCase,
     required AddFavoriteSongUseCase addFavoriteSongUseCase,
     required RemoveFavoriteSongUseCase removeFavoriteSongUseCase,
     required CreateUserPlaylistUseCase createUserPlaylistUseCase,
-    required OfflineService offlineService,
     required PlayerBlocBloc playerBloc,
-  }) : _getLibrarySummaryUseCase = getLibrarySummaryUseCase,
+  }) : _getAggregatedLibraryUseCase = getAggregatedLibraryUseCase,
        _getFavoriteSongsUseCase = getFavoriteSongsUseCase,
-       _getFavoritePlaylistsUseCase = getFavoritePlaylistsUseCase,
-       _getFavoriteGenresUseCase = getFavoriteGenresUseCase,
-       _getUserPlaylistsUseCase = getUserPlaylistsUseCase,
        _addFavoriteSongUseCase = addFavoriteSongUseCase,
        _removeFavoriteSongUseCase = removeFavoriteSongUseCase,
        _createUserPlaylistUseCase = createUserPlaylistUseCase,
-       _offlineService = offlineService,
        _playerBloc = playerBloc,
        super(const LibraryState());
 
@@ -62,126 +45,67 @@ class LibraryCubit extends Cubit<LibraryState> with BaseBlocMixin {
     emit(state.copyWith(status: LibraryStatus.loading, clearError: true));
 
     try {
-      final isOnline = await _offlineService.isOnline;
-
-      if (!isOnline) {
-        await _loadOfflineLibrary();
-        return;
-      }
-
-      // Execute use cases
-      final songsResult = await _getFavoriteSongsUseCase(
-        page: 1,
-        limit: _pageSize,
-      );
-      final playlistsResult = await _getFavoritePlaylistsUseCase(
-        page: 1,
-        limit: _pageSize,
-      );
-      final userPlaylistsResult = await _getUserPlaylistsUseCase(
-        page: 1,
-        limit: 20,
-      );
-      final genresResult = await _getFavoriteGenresUseCase(
-        page: 1,
-        limit: _pageSize,
-      );
-      final summaryResult = await _getLibrarySummaryUseCase();
-
-      // Convert Song to FavoriteSong for UI compatibility
-      final List<FavoriteSong> favoriteSongs = songsResult.fold(
-        (error) => <FavoriteSong>[],
-        (songs) => songs.map(_mapSongToFavoriteSong).toList(),
-      );
-
-      // Get favorite playlists
-      final List<FavoritePlaylist> favoritePlaylists = playlistsResult.fold(
-        (error) => <FavoritePlaylist>[],
-        (entities) => entities.map(_mapEntityToFavoritePlaylist).toList(),
-      );
-
-      // Get user playlists
-      final List<UserPlaylist> userPlaylists = userPlaylistsResult.fold(
-        (error) => <UserPlaylist>[],
-        (playlists) => playlists,
-      );
-
-      // Get favorite genres
-      final List<FavoriteGenre> favoriteGenres = genresResult.fold(
-        (error) => <FavoriteGenre>[],
-        (entities) => entities.map(_mapEntityToFavoriteGenre).toList(),
-      );
-
-      // Get summary
-      final LibrarySummary? summary = summaryResult.fold(
-        (error) => null,
-        (entity) => LibrarySummary(
-          favoriteSongs: entity.favoriteSongsCount,
-          favoritePlaylists: entity.favoritePlaylistsCount,
-          favoriteGenres: entity.favoriteGenresCount,
-        ),
-      );
-
-      final allPlaylists = <PlaylistItem>[];
-
-      for (final userPlaylist in userPlaylists) {
-        allPlaylists.add(
-          PlaylistItem(
-            id: userPlaylist.id,
-            name: userPlaylist.name,
-            description: userPlaylist.description,
-            thumbnail: userPlaylist.thumbnail,
-            songCount: userPlaylist.songCount,
-            isUserCreated: true,
-          ),
-        );
-      }
-
-      for (final favPlaylist in favoritePlaylists) {
-        allPlaylists.add(
-          PlaylistItem(
-            id: favPlaylist.playlistId,
-            externalPlaylistId: favPlaylist.externalPlaylistId,
-            name: favPlaylist.name,
-            description: favPlaylist.description,
-            thumbnail: favPlaylist.thumbnail,
-            songCount:
-                favPlaylist.cachedTrackCount ?? favPlaylist.trackCount ?? 0,
-            isUserCreated: false,
-          ),
-        );
-      }
+      final result = await _getAggregatedLibraryUseCase(page: 1, limit: _pageSize);
 
       if (isClosed) return;
 
-      // Calculate totals from results
-      final int totalSongs = songsResult.fold(
-        (_) => 0,
-        (songs) => songs.length,
-      );
-      final int totalPlaylists =
-          userPlaylistsResult.fold((_) => 0, (playlists) => playlists.length) +
-          playlistsResult.fold((_) => 0, (playlists) => playlists.length);
-      final int totalGenres = genresResult.fold(
-        (_) => 0,
-        (genres) => genres.length,
-      );
+      result.fold(
+        (error) => emit(state.copyWith(
+          status: LibraryStatus.failure,
+          errorMessage: _parseError(error),
+        )),
+        (aggregatedData) {
+          final favoriteSongs = aggregatedData.favoriteSongs.map(_mapSongToFavoriteSong).toList();
+          final favoritePlaylists = aggregatedData.favoritePlaylists.map(_mapEntityToFavoritePlaylist).toList();
+          final userPlaylists = aggregatedData.userPlaylists;
+          final favoriteGenres = aggregatedData.favoriteGenres.map(_mapEntityToFavoriteGenre).toList();
 
-      emit(
-        state.copyWith(
-          status: LibraryStatus.success,
-          favoriteSongs: favoriteSongs,
-          favoritePlaylists: favoritePlaylists,
-          userPlaylists: userPlaylists,
-          allPlaylists: allPlaylists,
-          favoriteGenres: favoriteGenres,
-          totalSongs: totalSongs,
-          totalPlaylists: totalPlaylists,
-          totalGenres: totalGenres,
-          summary: summary,
-          clearError: true,
-          isOffline: false,
-        ),
+          final allPlaylists = <PlaylistItem>[];
+
+          for (final userPlaylist in userPlaylists) {
+            allPlaylists.add(
+              PlaylistItem(
+                id: userPlaylist.id,
+                name: userPlaylist.name,
+                description: userPlaylist.description,
+                thumbnail: userPlaylist.thumbnail,
+                songCount: userPlaylist.songCount,
+                isUserCreated: true,
+              ),
+            );
+          }
+
+          for (final favPlaylist in favoritePlaylists) {
+            allPlaylists.add(
+              PlaylistItem(
+                id: favPlaylist.playlistId,
+                externalPlaylistId: favPlaylist.externalPlaylistId,
+                name: favPlaylist.name,
+                description: favPlaylist.description,
+                thumbnail: favPlaylist.thumbnail,
+                songCount: favPlaylist.cachedTrackCount ?? favPlaylist.trackCount ?? 0,
+                isUserCreated: false,
+              ),
+            );
+          }
+
+          emit(
+            state.copyWith(
+              status: LibraryStatus.success,
+              favoriteSongs: favoriteSongs,
+              favoritePlaylists: favoritePlaylists,
+              userPlaylists: userPlaylists,
+              allPlaylists: allPlaylists,
+              favoriteGenres: favoriteGenres,
+              totalSongs: aggregatedData.totalSongs,
+              totalPlaylists: aggregatedData.totalPlaylists,
+              totalGenres: aggregatedData.totalGenres,
+              summary: aggregatedData.summary,
+              clearError: true,
+              isOffline: aggregatedData.isOffline,
+            ),
+          );
+        },
       );
     } catch (e) {
       if (isClosed) return;
@@ -192,60 +116,6 @@ class LibraryCubit extends Cubit<LibraryState> with BaseBlocMixin {
         ),
       );
     }
-  }
-
-  Future<void> _loadOfflineLibrary() async {
-    try {
-      final offlinePlaylists = await _offlineService.getOfflinePlaylists();
-
-      final favoritePlaylists = offlinePlaylists
-          .map(_convertToFavoritePlaylist)
-          .toList();
-
-      if (isClosed) return;
-
-      emit(
-        state.copyWith(
-          status: LibraryStatus.success,
-          favoriteSongs: const [],
-          favoritePlaylists: favoritePlaylists,
-          favoriteGenres: const [],
-          totalSongs: 0,
-          totalPlaylists: favoritePlaylists.length,
-          totalGenres: 0,
-          summary: LibrarySummary(
-            favoriteSongs: 0,
-            favoritePlaylists: favoritePlaylists.length,
-            favoriteGenres: 0,
-          ),
-          clearError: true,
-          isOffline: true,
-        ),
-      );
-    } catch (e) {
-      if (isClosed) return;
-      emit(
-        state.copyWith(
-          status: LibraryStatus.failure,
-          errorMessage: _parseError(e),
-          isOffline: true,
-        ),
-      );
-    }
-  }
-
-  FavoritePlaylist _convertToFavoritePlaylist(OfflinePlaylist offlinePlaylist) {
-    return FavoritePlaylist(
-      id: offlinePlaylist.playlistId,
-      playlistId: offlinePlaylist.playlistId,
-      externalPlaylistId: offlinePlaylist.externalPlaylistId,
-      name: offlinePlaylist.name,
-      description: offlinePlaylist.description,
-      thumbnail:
-          offlinePlaylist.thumbnail ?? offlinePlaylist.localThumbnailPath,
-      trackCount: offlinePlaylist.trackCount,
-      createdAt: offlinePlaylist.createdAt,
-    );
   }
 
   /// Map Song domain entity to FavoriteSong (for UI compatibility)

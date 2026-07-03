@@ -9,4 +9,9 @@ class MoodGenre {
   final String params;
 
   const MoodGenre({required this.title, required this.params});
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si tiene parámetros de navegación válidos para que la UI los use
+  bool get hasValidParams => params.trim().isNotEmpty;
 }

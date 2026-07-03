@@ -11,4 +11,12 @@ class ChartPlaylist {
     required this.playlistId,
     required this.thumbnails,
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si el ID de la lista está poblado
+  bool get hasValidId => playlistId.trim().isNotEmpty;
+
+  /// Retorna la miniatura de mejor calidad (usualmente la última)
+  String? get bestThumbnail => thumbnails.isNotEmpty ? thumbnails.last.url : null;
 }

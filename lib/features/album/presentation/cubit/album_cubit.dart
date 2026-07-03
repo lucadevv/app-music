@@ -87,9 +87,8 @@ class AlbumCubit extends Cubit<AlbumState> with BaseBlocMixin {
   }
 
   bool playSong(AlbumSong song, List<AlbumSong> allSongs) {
-    // Validar streamUrl
-    if (song.streamUrl == null || song.streamUrl!.isEmpty) {
-      emit(state.copyWith(errorMessage: 'Canción no disponible'));
+    if (song.videoId.isEmpty) {
+      emit(state.copyWith(errorMessage: 'ID de canción inválido'));
       return false;
     }
 
@@ -105,12 +104,7 @@ class AlbumCubit extends Cubit<AlbumState> with BaseBlocMixin {
     if (songs.isEmpty) return null;
 
     final validSongs = songs
-        .where(
-          (s) =>
-              s.videoId.isNotEmpty &&
-              s.streamUrl != null &&
-              s.streamUrl!.isNotEmpty,
-        )
+        .where((s) => s.videoId.isNotEmpty)
         .toList();
 
     if (validSongs.isEmpty) return null;

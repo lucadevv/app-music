@@ -56,9 +56,7 @@ class RadioTrackModel {
       title: json['title'] as String? ?? 'Unknown',
       artist: json['artist'] as String?,
       artists: artistsList,
-      thumbnail: json['thumbnail'] as String?,
-      streamUrl: json['stream_url'] as String?,
-      length: lengthStr,
+      streamUrl: (json['stream_url'] ?? json['streamUrl']) as String?,
       durationSeconds: durationSecs,
     );
   }

@@ -1,47 +1,31 @@
 import 'package:music_app/features/mood_genre/domain/entities/mood_playlist.dart';
-import 'package:music_app/features/search/data/models/thumbnail_model.dart';
 
-/// Modelo para una playlist de mood/genre
 class MoodPlaylistModel extends MoodPlaylist {
   const MoodPlaylistModel({
+    required super.playlistId,
     required super.title,
-    required super.itemCount,
-    required super.author,
-    required super.browseId,
-    required super.thumbnails,
-    required super.category,
-    required super.resultType,
+    super.description,
+    super.thumbnail,
+    super.videoCount,
   });
 
   factory MoodPlaylistModel.fromJson(Map<String, dynamic> json) {
     return MoodPlaylistModel(
+      playlistId: json['playlistId'] as String? ?? '',
       title: json['title'] as String? ?? '',
-      itemCount: json['itemCount'] as String? ?? '0',
-      author: json['author'] as String? ?? '',
-      // La API puede retornar 'playlistId' o 'browseId'
-      browseId:
-          json['browseId'] as String? ?? json['playlistId'] as String? ?? '',
-      thumbnails:
-          (json['thumbnails'] as List<dynamic>?)
-              ?.map((e) => ThumbnailModel.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [],
-      category: json['category'] as String? ?? '',
-      resultType: json['resultType'] as String? ?? '',
+      description: json['description'] as String?,
+      thumbnail: (json['thumbnail'] as List<dynamic>?)?.cast<String>(),
+      videoCount: json['videoCount'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'playlistId': playlistId,
       'title': title,
-      'itemCount': itemCount,
-      'author': author,
-      'browseId': browseId,
-      'thumbnails': thumbnails
-          .map((t) => (t as ThumbnailModel).toJson())
-          .toList(),
-      'category': category,
-      'resultType': resultType,
+      if (description != null) 'description': description,
+      if (thumbnail != null) 'thumbnail': thumbnail,
+      if (videoCount != null) 'videoCount': videoCount,
     };
   }
 }

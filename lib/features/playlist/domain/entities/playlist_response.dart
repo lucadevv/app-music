@@ -35,4 +35,18 @@ class PlaylistResponse {
     required this.tracks,
     required this.durationSeconds,
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si la lista de reproducción tiene canciones asignadas
+  bool get hasTracks => tracks.isNotEmpty;
+
+  /// Verifica si la privacidad está configurada como 'privada'
+  bool get isPrivate => privacy.toLowerCase() == 'private';
+
+  /// Verifica si la lista cuenta con descripción
+  bool get hasDescription => description.trim().isNotEmpty;
+
+  /// Obtiene la miniatura de mejor calidad (la última del array usualmente)
+  String? get bestThumbnail => thumbnails.isNotEmpty ? thumbnails.last.url : null;
 }

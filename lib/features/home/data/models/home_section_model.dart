@@ -9,10 +9,11 @@ class HomeSectionModel extends HomeSection {
     return HomeSectionModel(
       title: json['title'] as String? ?? '',
       contents:
-          (json['contents'] as List<dynamic>?)
+          (json['items'] as List<dynamic>?)
               ?.map(
-                (item) =>
-                    HomeContentItemModel.fromJson(item as Map<String, dynamic>),
+                (item) => HomeContentItemMapper.fromJson(
+                  item as Map<String, dynamic>,
+                ),
               )
               .toList() ??
           [],
@@ -22,9 +23,7 @@ class HomeSectionModel extends HomeSection {
   Map<String, dynamic> toJson() {
     return {
       'title': title,
-      'contents': contents
-          .map((c) => (c as HomeContentItemModel).toJson())
-          .toList(),
+      'items': contents.map(HomeContentItemMapper.toJson).toList(),
     };
   }
 }

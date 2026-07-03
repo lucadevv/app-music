@@ -1,13 +1,34 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../core/domain/entities/playable_audio.dart';
+
 /// Entidad del dominio para una canción en los resultados de búsqueda
 ///
-/// @deprecated Usar [Song] desde `core/domain/entities/song.dart`
-/// Esta entidad será eliminada en futuras versiones.
-/// Usar [SongMapper] para convertir a la entidad centralizada.
-@Deprecated('Usar Song desde core/domain/entities/song.dart')
-class Song {
+/// Refactorizada para usar Polimorfismo (PlayableAudio) en lugar del 
+/// antipatrón God Entity.
+class Song implements PlayableAudio {
+  // --------- PlayableAudio Mappers ---------
+  @override
+  String get id => videoId;
+
+  @override
+  String get artist => artists.isNotEmpty ? artists.first.name : 'Unknown Artist';
+
+  @override
+  Duration get audioDuration => Duration(seconds: durationSeconds);
+
+  @override
+  String? get bestThumbnail => thumbnail?.url ?? (thumbnails.isNotEmpty ? thumbnails.last.url : null);
+
+  @override
+  bool get canPlay => streamUrl != null && streamUrl!.isNotEmpty;
+  
+  @override
   final String title;
+  
+  @override
+  final String? streamUrl;
+  // -----------------------------------------
   final SearchAlbum album;
   final List<SearchArtist> artists;
   final String videoId;
@@ -17,10 +38,8 @@ class Song {
   final bool isExplicit;
   final bool inLibrary;
   final List<Thumbnail> thumbnails;
-  final String?
-  streamUrl; // URL de streaming (viene del endpoint con include_stream_urls=true)
-  final Thumbnail?
-  thumbnail; // Thumbnail de mejor calidad (viene junto con stream_url)
+  // URL de streaming (viene del endpoint con include_stream_urls=true)
+  final Thumbnail? thumbnail; // Thumbnail de mejor calidad (viene junto con stream_url)
 
   const Song({
     required this.title,
@@ -36,6 +55,17 @@ class Song {
     this.streamUrl,
     this.thumbnail,
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Indica si la canción pertenece a más de un artista
+  bool get hasMultipleArtists => artists.length > 1;
+
+  /// Indica si la canción pertenece a un disco con nombre válido
+  bool get hasAlbum => album.name.trim().isNotEmpty && album.name.toLowerCase() != 'unknown';
+
+  /// Retorna un string con todos los artistas separados por coma
+  String get allArtistsNames => artists.map((a) => a.name).join(', ');
 }
 
 /// Entidad de álbum en búsqueda

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 
 class ProfileAvatar extends StatelessWidget {
   final String? avatarUrl;
@@ -10,7 +11,7 @@ class ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (avatarUrl != null && avatarUrl!.isNotEmpty) {
+    if (avatarUrl.isValidImageUrl) {
       return Container(
         width: 40,
         height: 40,

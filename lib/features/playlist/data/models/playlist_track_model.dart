@@ -56,7 +56,7 @@ class PlaylistTrackModel extends PlaylistTrack {
       views: json['views']?.toString(),
       duration: json['duration'] as String? ?? '0:00',
       durationSeconds: json['duration_seconds'] as int? ?? 0,
-      streamUrl: json['stream_url'] as String?,
+      streamUrl: (json['streamUrl'] ?? json['stream_url']) as String?,
       thumbnail: json['thumbnail'] != null
           ? (json['thumbnail'] is Map<String, dynamic>
                 ? ThumbnailModel.fromJson(

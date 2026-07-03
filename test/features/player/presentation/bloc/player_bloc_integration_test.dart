@@ -45,7 +45,7 @@ void main() {
         const LoadPlaylistEvent(playlist: [], startIndex: 0, sourceId: 'test'),
       ),
       wait: const Duration(milliseconds: 20),
-      verify: (bloc) => expect(bloc.state.error, 'La playlist está vacía'),
+      verify: (bloc) => expect(bloc.state.error, 'Playlist vacía'),
     );
 
     blocTest<PlayerBlocBloc, PlayerBlocState>(

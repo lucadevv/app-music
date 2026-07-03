@@ -1,6 +1,8 @@
 // ignore_for_file: deprecated_member_use_from_same_package
-import 'package:audio_service/audio_service.dart';
 import 'package:equatable/equatable.dart';
+
+// Importaciones del núcleo polimórfico
+import 'package:music_app/core/domain/entities/playable_audio.dart';
 
 import 'package:music_app/core/domain/entities/song.dart';
 import 'package:music_app/features/playlist/domain/entities/playlist_track.dart';
@@ -19,9 +21,26 @@ import 'package:music_app/features/search/domain/entities/thumbnail.dart'
 /// - Responsable única: Representar los datos necesarios para reproducir una canción
 /// - Inmutable: Todos los campos son final para garantizar inmutabilidad
 /// - Reutilizable: Puede construirse desde diferentes fuentes (Song, datos básicos)
-class NowPlayingData extends Equatable {
+class NowPlayingData extends Equatable implements PlayableAudio {
+  // --------- PlayableAudio Mappers ---------
+  @override
+  String get id => videoId;
+
+  @override
+  String get artist => artistsNames;
+
+  @override
+  Duration get audioDuration => Duration(seconds: durationSeconds);
+
+  @override
+  bool get canPlay => streamUrl != null && streamUrl!.isNotEmpty;
+  // -----------------------------------------
+
   final String videoId;
+  
+  @override
   final String title;
+  
   final List<search_artist.SearchArtist> artists;
   final search_album.SearchAlbum album;
   final String duration;
@@ -30,8 +49,9 @@ class NowPlayingData extends Equatable {
   final bool isExplicit;
   final bool inLibrary;
   final List<search_thumb.Thumbnail> thumbnails;
-  final String?
-  streamUrl; // URL de streaming (viene del endpoint con include_stream_urls=true)
+  
+  @override
+  final String? streamUrl; // URL de streaming (viene del endpoint con include_stream_urls=true)
   final search_thumb.Thumbnail?
   thumbnail; // Thumbnail de mejor calidad (viene junto con stream_url)
 
@@ -257,13 +277,14 @@ class NowPlayingData extends Equatable {
   /// 2. La más grande de thumbnails
   ///
   /// Retorna null si no hay thumbnails disponibles
-  search_thumb.Thumbnail? get bestThumbnail {
+  @override
+  String? get bestThumbnail {
     // Priorizar thumbnail de mejor calidad si está disponible
-    if (thumbnail != null) return thumbnail;
+    if (thumbnail != null) return thumbnail!.url;
 
     // Si no, usar la más grande de thumbnails
     if (thumbnails.isEmpty) return null;
-    return thumbnails.last; // La última suele ser la más grande
+    return thumbnails.last.url; // La última suele ser la más grande
   }
 
   /// Thumbnail de alta resolución para el Player
@@ -276,21 +297,8 @@ class NowPlayingData extends Equatable {
     height: 720,
   );
 
-  /// Convierte NowPlayingData a MediaItem para notificaciones
-  ///
-  /// Esto es necesario para que las notificaciones y controles
-  /// en pantalla de bloqueo muestren la información correcta
-  MediaItem toMediaItem() {
-    return MediaItem(
-      id: videoId,
-      album: album.name,
-      title: title,
-      artist: artistsNames,
-      duration: durationSeconds > 0 ? Duration(seconds: durationSeconds) : null,
-      artUri: Uri.tryParse(highResThumbnail.url),
-      extras: {'videoId': videoId, 'streamUrl': streamUrl},
-    );
-  }
+  // El método toMediaItem fue extraído a lib/core/services/media_item_mapper.dart
+  // para cumplir con la Regla de Dependencia de Clean Architecture.
 
   /// Convierte NowPlayingData a Song canónico
   ///
@@ -302,8 +310,8 @@ class NowPlayingData extends Equatable {
       artist: artists.isNotEmpty ? artists.first.name : 'Unknown Artist',
       artistNames: artists.map((a) => a.name).toList(),
       album: album.name,
-      thumbnail: bestThumbnail?.url,
-      highThumbnail: bestThumbnail?.url,
+      thumbnail: bestThumbnail,
+      highThumbnail: bestThumbnail,
       thumbnails: thumbnails
           .map((t) => Thumbnail(url: t.url, width: t.width, height: t.height))
           .toList(),

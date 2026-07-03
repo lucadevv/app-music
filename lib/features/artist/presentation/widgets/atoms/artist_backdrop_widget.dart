@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 
 class ArtistBackdropWidget extends StatelessWidget {
   final String? thumbnail;
@@ -17,7 +18,7 @@ class ArtistBackdropWidget extends StatelessWidget {
           colors: [AppColorsDark.primaryContainer, Color(0xFF0D0D0D)],
         ),
       ),
-      child: thumbnail != null
+      child: thumbnail != null && thumbnail.isValidImageUrl
           ? CachedNetworkImage(
               imageUrl: thumbnail!,
               fit: BoxFit.cover,

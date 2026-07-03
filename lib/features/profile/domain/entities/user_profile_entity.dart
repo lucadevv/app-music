@@ -58,6 +58,17 @@ class UserProfileEntity extends Equatable {
     return email[0].toUpperCase();
   }
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si el usuario tiene una imagen de perfil configurada
+  bool get hasAvatar => avatar != null && avatar!.trim().isNotEmpty;
+
+  /// Indica si tiene rol estándar ('user')
+  bool get isStandardUser => role.toLowerCase() == 'user';
+
+  /// Confirma si el nombre completo del usuario fue provisto
+  bool get hasFullName => firstName != null && firstName!.trim().isNotEmpty && lastName != null && lastName!.trim().isNotEmpty;
+
   UserProfileEntity copyWith({
     String? id,
     String? email,

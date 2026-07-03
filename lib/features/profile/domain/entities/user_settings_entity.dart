@@ -18,28 +18,18 @@ class UserSettingsEntity extends Equatable {
     this.equalizerPreset = 'flat',
   });
 
-  /// Create entity from JSON map
-  factory UserSettingsEntity.fromJson(Map<String, dynamic> json) {
-    return UserSettingsEntity(
-      language: json['language'] ?? 'en',
-      streamingQuality: json['streamingQuality'] ?? 'high',
-      downloadQuality: json['downloadQuality'] ?? 'high',
-      autoPlay: json['autoPlay'] ?? true,
-      showLyrics: json['showLyrics'] ?? false,
-      equalizerPreset: json['equalizerPreset'] ?? 'flat',
-    );
-  }
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
 
-  Map<String, dynamic> toJson() {
-    return {
-      'language': language,
-      'streamingQuality': streamingQuality,
-      'downloadQuality': downloadQuality,
-      'autoPlay': autoPlay,
-      'showLyrics': showLyrics,
-      'equalizerPreset': equalizerPreset,
-    };
-  }
+  /// Verifica si la configuración demanda streaming de máxima fidelidad
+  bool get demandsHighQualityStreaming => streamingQuality.toLowerCase() == 'high';
+
+  /// Verifica si las descargas deben ser de máxima fidelidad
+  bool get demandsHighQualityDownload => downloadQuality.toLowerCase() == 'high';
+
+  /// Indica si hay un ecualizador personalizado (distinto al flat)
+  bool get hasCustomEqualizer => equalizerPreset.toLowerCase() != 'flat';
+
+
 
   UserSettingsEntity copyWith({
     String? language,

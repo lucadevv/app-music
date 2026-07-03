@@ -25,19 +25,18 @@ class RelaxDataSource {
 
       return response.playlists
           .where(
-            (playlist) =>
-                relaxMoods.contains(playlist.title.toLowerCase()) ||
-                relaxMoods.contains(playlist.category.toLowerCase()),
+            (playlist) => relaxMoods.contains(playlist.title.toLowerCase()),
           )
           .map(
             (playlist) => RelaxPlaylistEntity(
-              id: playlist.browseId,
+              id: playlist.playlistId,
               title: playlist.title,
-              description: playlist.author,
-              thumbnail: playlist.thumbnails.isNotEmpty
-                  ? playlist.thumbnails.first.url
+              description: playlist.description ?? '',
+              thumbnail:
+                  playlist.thumbnail != null && playlist.thumbnail!.isNotEmpty
+                  ? playlist.thumbnail!.first
                   : null,
-              category: playlist.category,
+              category: '',
             ),
           )
           .toList();

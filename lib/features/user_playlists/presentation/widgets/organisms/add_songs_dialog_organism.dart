@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
 import 'package:music_app/core/utils/bottom_sheet_visibility.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/search/domain/entities/search_request.dart';
 import 'package:music_app/features/search/domain/entities/song.dart';
 import 'package:music_app/features/search/domain/repositories/search_repository.dart';
@@ -262,7 +263,9 @@ class _AddSongsDialogOrganismState extends State<AddSongsDialogOrganism> {
                 width: 48,
                 height: 48,
                 color: AppColorsDark.primaryContainer,
-                child: song.thumbnail?.url != null
+                child:
+                    song.thumbnail?.url != null &&
+                        song.thumbnail!.url.isValidImageUrl
                     ? CachedNetworkImage(
                         imageUrl: song.thumbnail!.url,
                         fit: BoxFit.cover,

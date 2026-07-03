@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 
 class GridImage extends StatelessWidget {
   final String url;
@@ -16,6 +17,21 @@ class GridImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!url.isValidImageUrl) {
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: AppColorsDark.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(
+          Icons.music_note,
+          color: AppColorsDark.onSurfaceVariant,
+        ),
+      );
+    }
+
     return Container(
       width: width,
       height: height,

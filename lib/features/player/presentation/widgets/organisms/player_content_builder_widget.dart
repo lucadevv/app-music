@@ -39,10 +39,7 @@ class PlayerContentBuilderWidget extends StatelessWidget {
   bool get isCurrentSong =>
       state.currentTrack?.videoId == nowPlayingData.videoId;
 
-  NowPlayingData get currentTrack =>
-      (isCurrentSong && state.currentTrack != null)
-      ? state.currentTrack!
-      : nowPlayingData;
+  NowPlayingData get currentTrack => state.currentTrack ?? nowPlayingData;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +82,7 @@ class PlayerContentBuilderWidget extends StatelessWidget {
         currentVideoId: nowPlayingData.videoId,
         currentTitle: nowPlayingData.title,
         currentArtist: nowPlayingData.artistsNames,
-        currentThumbnail: nowPlayingData.bestThumbnail?.url,
+        currentThumbnail: nowPlayingData.bestThumbnail,
         currentDuration: nowPlayingData.durationSeconds,
       ),
     );

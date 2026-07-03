@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:music_app/core/domain/entities/playable_audio.dart';
 
 /// Entidad de dominio unificada para un álbum.
 ///
@@ -164,8 +165,9 @@ class AlbumArtist extends Equatable {
 }
 
 /// Canción de un álbum
-class AlbumSong extends Equatable {
+class AlbumSong extends Equatable implements PlayableAudio {
   final String videoId;
+  @override
   final String title;
   final String? thumbnail;
   final int durationSeconds;
@@ -189,6 +191,24 @@ class AlbumSong extends Equatable {
     final seconds = durationSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
+
+  @override
+  String get id => videoId;
+
+  @override
+  String get artist => artistName ?? (artists.isNotEmpty ? artists.first.name : 'Unknown Artist');
+
+  @override
+  String? get streamUrl => null;
+
+  @override
+  Duration get audioDuration => Duration(seconds: durationSeconds);
+
+  @override
+  String? get bestThumbnail => thumbnail;
+
+  @override
+  bool get canPlay => true;
 
   @override
   List<Object?> get props => [

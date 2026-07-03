@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_app/core/bloc/base_bloc_mixin.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
-import 'package:music_app/features/home/domain/entities/chart_song.dart';
+import 'package:music_app/features/home/domain/entities/chart_playlist.dart';
 import 'package:music_app/features/home/domain/entities/home_content_item.dart';
 import 'package:music_app/features/home/domain/entities/home_response.dart';
 import 'package:music_app/features/home/domain/entities/home_section.dart';
@@ -101,23 +101,23 @@ class HomeCubit extends Cubit<HomeState> with BaseBlocMixin {
 
     NowPlayingData? nowPlayingData;
 
-    // Determinar tipo de contenido
-    switch (item.contentType) {
-      case HomeContentType.song:
+    // Determinar tipo de contenido usando PATTERN MATCHING DART 3
+    switch (item) {
+      case final HomeSongItem song:
         // Es una canción - reproducir directamente
-        if (item.videoId != null && item.videoId!.isNotEmpty) {
+        if (song.videoId.isNotEmpty) {
           nowPlayingData = NowPlayingData.fromBasic(
-            videoId: item.videoId!,
-            title: item.title,
-            artistNames: item.artists.map((a) => a.name).toList(),
-            albumName: item.album?.name ?? '',
-            albumId: item.album?.id,
+            videoId: song.videoId,
+            title: song.title,
+            artistNames: song.artists.map((a) => a.name).toList(),
+            albumName: song.album?.name ?? '',
+            albumId: song.album?.id,
             duration: '0:00',
-            views: item.views,
-            isExplicit: item.isExplicit,
-            thumbnails: item.thumbnails,
-            thumbnail: item.thumbnail,
-            streamUrl: item.streamUrl,
+            views: song.views,
+            isExplicit: song.isExplicit,
+            thumbnails: song.thumbnails,
+            thumbnail: song.thumbnail,
+            streamUrl: song.streamUrl,
           );
           debugPrint(
             'DEBUG: Creando NowPlayingData con streamUrl: ${nowPlayingData.streamUrl}',
@@ -127,17 +127,17 @@ class HomeCubit extends Cubit<HomeState> with BaseBlocMixin {
         }
         break;
 
-      case HomeContentType.album:
+      case HomeAlbumItem _:
         // Es un álbum - no se reproduce directamente, se navega al álbum
         debugPrint('DEBUG: Es un álbum, no se reproduce directamente');
         break;
 
-      case HomeContentType.playlist:
+      case HomePlaylistItem _:
         // Es una playlist - no se reproduce directamente, se navega a la playlist
         debugPrint('DEBUG: Es una playlist, no se reproduce directamente');
         break;
 
-      case HomeContentType.unknown:
+      case HomeUnknownItem _:
         debugPrint('DEBUG: Tipo desconocido');
         break;
     }
@@ -146,30 +146,26 @@ class HomeCubit extends Cubit<HomeState> with BaseBlocMixin {
     return nowPlayingData;
   }
 
-  /// Reproduce una canción de chart
+  /// Navega a una playlist de chart
   /// Retorna el NowPlayingData para navegación
-  NowPlayingData playChartSong(ChartSong song) {
+  NowPlayingData playChartPlaylist(ChartPlaylist playlist) {
     final nowPlayingData = NowPlayingData.fromBasic(
-      videoId: song.videoId,
-      title: song.title,
-      artistNames: [song.artist],
+      videoId: playlist.playlistId,
+      title: playlist.title,
+      artistNames: const [],
       albumName: '',
       duration: '0:00',
       durationSeconds: 0,
-      thumbnails: const [],
-      streamUrl: song.streamUrl,
-      thumbnailUrl: song.thumbnail,
+      thumbnails: playlist.thumbnails,
     );
 
-    // NO disparamos LoadTrackEvent aquí - PlayerScreen lo hace
     return nowPlayingData;
   }
 
   NowPlayingData? _mapContentItemToNowPlaying(HomeContentItem item) {
-    // Si ya tiene videoId, mapear ese item directamente como canción
-    if (item.videoId != null && item.videoId!.isNotEmpty) {
+    if (item is HomeSongItem && item.videoId.isNotEmpty) {
       return NowPlayingData.fromBasic(
-        videoId: item.videoId!,
+        videoId: item.videoId,
         title: item.title,
         artistNames: item.artists.map((a) => a.name).toList(),
         albumName: item.album?.name ?? '',
@@ -180,7 +176,7 @@ class HomeCubit extends Cubit<HomeState> with BaseBlocMixin {
         inLibrary: false,
         thumbnails: item.thumbnails,
         streamUrl: item.streamUrl,
-        thumbnailUrl: item.thumbnail?.url,
+        thumbnailUrl: item.thumbnail?.url ?? item.bestThumbnailUrl,
       );
     }
     return null;

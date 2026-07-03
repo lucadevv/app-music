@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
 import 'package:music_app/features/playlist/domain/entities/playlist_response.dart';
+import 'package:music_app/features/playlist/domain/entities/playlist_track.dart';
 import 'package:music_app/features/playlist/presentation/cubit/playlist_state.dart';
 import 'package:music_app/features/playlist/presentation/widgets/molecules/playlist_loading_more_section.dart';
 import 'package:music_app/features/playlist/presentation/widgets/molecules/playlist_search_bar.dart';
@@ -19,6 +20,10 @@ class PlaylistScrollContent extends StatelessWidget {
   final VoidCallback onLoadMore;
   final VoidCallback onRefresh;
   final Function(BuildContext, dynamic) onShowMenu;
+  final String? currentTrackId;
+  final bool isPlaying;
+  final Function(PlaylistTrack) onSongTap;
+  final Function(PlaylistTrack) onOptionsTap;
 
   const PlaylistScrollContent({
     required this.playlist,
@@ -31,6 +36,8 @@ class PlaylistScrollContent extends StatelessWidget {
     required this.onLoadMore,
     required this.onRefresh,
     required this.onShowMenu,
+    required this.onSongTap, required this.onOptionsTap, this.currentTrackId,
+    this.isPlaying = false,
     super.key,
   });
 
@@ -62,6 +69,10 @@ class PlaylistScrollContent extends StatelessWidget {
             tracks: playlistState.filteredResponseTracks,
             searchQuery: searchController.text,
             playlistId: playlist.id,
+            currentTrackId: currentTrackId,
+            isPlaying: isPlaying,
+            onSongTap: onSongTap,
+            onOptionsTap: onOptionsTap,
           ),
           PlaylistLoadingMoreSection(
             status: playlistState.status,

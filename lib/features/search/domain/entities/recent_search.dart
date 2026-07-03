@@ -18,4 +18,17 @@ class RecentSearch {
     required this.createdAt,
     required this.lastSearchedAt,
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Determina si la búsqueda fue realizada recientemente según un umbral
+  bool isRecent([Duration threshold = const Duration(days: 7)]) {
+    return DateTime.now().difference(lastSearchedAt) <= threshold;
+  }
+
+  /// Indica si la búsqueda es muy antigua (creada hace más de 30 días)
+  bool get isVeryOld => DateTime.now().difference(createdAt).inDays > 30;
+
+  /// Indica si la búsqueda está ligada a un video directamente
+  bool get hasDirectVideo => videoId. trim().isNotEmpty;
 }

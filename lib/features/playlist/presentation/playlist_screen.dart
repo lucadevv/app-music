@@ -3,8 +3,10 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:music_app/core/app_router/app_routes.gr.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
+import 'package:music_app/features/favorites/presentation/cubit/favorite_cubit.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
 import 'package:music_app/features/playlist/domain/entities/playlist_track.dart';
 import 'package:music_app/features/playlist/domain/use_cases/get_playlist_use_case.dart';
@@ -17,6 +19,7 @@ import 'package:music_app/features/playlist/presentation/widgets/organisms/add_t
 import 'package:music_app/features/playlist/presentation/widgets/organisms/playlist_listeners.dart';
 import 'package:music_app/features/playlist/presentation/widgets/organisms/playlist_menu_bottom_sheet.dart';
 import 'package:music_app/features/playlist/presentation/widgets/organisms/playlist_scroll_content.dart';
+import 'package:music_app/features/song_options/presentation/widgets/song_options_bottom_sheet.dart';
 import 'package:music_app/l10n/app_localizations.dart';
 
 @RoutePage()
@@ -118,9 +121,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
           (track) =>
               track.videoId != null &&
               track.videoId!.isNotEmpty &&
-              track.isAvailable &&
-              track.streamUrl != null &&
-              track.streamUrl!.isNotEmpty,
+              track.isAvailable,
         )
         .toList();
 
@@ -153,6 +154,66 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
     }
 
     AddToPlaylistSongsBottomSheet.show(context: context, tracks: tracks);
+  }
+
+  void _onSongTap(PlaylistTrack track) {
+    final playerBloc = context.read<PlayerBlocBloc>();
+    final playerState = playerBloc.state;
+    final isCurrentTrack = playerState.currentTrack != null &&
+        playerState.currentTrack!.videoId == track.videoId;
+
+    final nowPlayingData = NowPlayingData.fromPlaylistTrack(track);
+
+    if (isCurrentTrack) {
+      playerBloc.add(const PlayPauseToggleEvent());
+      return;
+    }
+
+    final playlistState = context.read<PlaylistCubit>().state;
+    final validTracks = playlistState.allTracks
+        .where((t) =>
+            t.isAvailable &&
+            t.videoId != null &&
+            t.videoId!.isNotEmpty)
+        .toList();
+
+    if (validTracks.isEmpty) return;
+
+    final nowPlayingTracks = validTracks.map(NowPlayingData.fromPlaylistTrack).toList();
+    final index = validTracks.indexWhere((t) => t.videoId == track.videoId);
+
+    playerBloc.add(
+      LoadPlaylistEvent(
+        playlist: nowPlayingTracks,
+        startIndex: index >= 0 ? index : 0,
+        sourceId: widget.id,
+      ),
+    );
+
+    context.router.push(
+      PlayerRoute(nowPlayingData: nowPlayingData, playAsSingle: false),
+    );
+  }
+
+  void _showTrackOptions(PlaylistTrack track) {
+    if (track.videoId == null || track.videoId!.isEmpty) return;
+    
+    final favoriteCubit = context.read<FavoriteCubit>();
+    final isFavorite = favoriteCubit.isSongFavorite(track.videoId!);
+
+    SongOptionsBottomSheet.show(
+      context: context,
+      song: SongOptionsData(
+        videoId: track.videoId!,
+        title: track.title,
+        artist: track.artists.isNotEmpty ? track.artists.first.name : 'Unknown Artist',
+        thumbnail: track.thumbnail?.url ??
+            (track.thumbnails.isNotEmpty ? track.thumbnails.last.url : null),
+        streamUrl: track.streamUrl,
+        durationSeconds: track.durationSeconds,
+        isFavorite: isFavorite,
+      ),
+    );
   }
 
   @override
@@ -199,6 +260,10 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                           context.read<PlaylistCubit>().loadMore(),
                       onRefresh: _onRefresh,
                       onShowMenu: _showPlaylistMenu,
+                      currentTrackId: playerState.currentTrack?.videoId,
+                      isPlaying: playerState.isPlaying,
+                      onSongTap: _onSongTap,
+                      onOptionsTap: _showTrackOptions,
                     ),
                   ],
                 );

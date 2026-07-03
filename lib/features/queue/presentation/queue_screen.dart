@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
 import 'package:music_app/l10n/app_localizations.dart';
@@ -137,9 +138,11 @@ class _NowPlayingCard extends StatelessWidget {
               width: 56,
               height: 56,
               color: AppColorsDark.primaryContainer,
-              child: track.bestThumbnail != null
+              child:
+                  track.bestThumbnail != null &&
+                      track.bestThumbnail!.isValidImageUrl
                   ? CachedNetworkImage(
-                      imageUrl: track.bestThumbnail!.url,
+                      imageUrl: track.bestThumbnail!,
                       fit: BoxFit.cover,
                       errorWidget: (_, _, _) => const Icon(
                         Icons.music_note,

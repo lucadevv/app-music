@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/home_response.dart';
-import 'chart_song_model.dart';
+import 'chart_playlist_model.dart';
 import 'home_section_model.dart';
 import 'mood_genre_model.dart';
 
@@ -56,24 +56,24 @@ class HomeResponseModel extends HomeResponse {
         .whereType<Map<String, dynamic>>()
         .map((item) {
           try {
-            return ChartSongModel.fromJson(item);
+            return ChartPlaylistModel.fromJson(item);
           } catch (_) {
             return null;
           }
         })
-        .whereType<ChartSongModel>()
+        .whereType<ChartPlaylistModel>()
         .toList();
 
     final trending = trendingData
         .whereType<Map<String, dynamic>>()
         .map((item) {
           try {
-            return ChartSongModel.fromJson(item);
+            return ChartPlaylistModel.fromJson(item);
           } catch (_) {
             return null;
           }
         })
-        .whereType<ChartSongModel>()
+        .whereType<ChartPlaylistModel>()
         .toList();
 
     // Sections
@@ -114,10 +114,10 @@ class HomeResponseModel extends HomeResponse {
       ].map((e) => (e as MoodGenreModel).toJson()).toList(),
       'charts': {
         'top_songs': charts.topSongs
-            .map((e) => (e as ChartSongModel).toJson())
+            .map((e) => (e as ChartPlaylistModel).toJson())
             .toList(),
         'trending': charts.trending
-            .map((e) => (e as ChartSongModel).toJson())
+            .map((e) => (e as ChartPlaylistModel).toJson())
             .toList(),
       },
       'home': sections.map((e) => (e as HomeSectionModel).toJson()).toList(),

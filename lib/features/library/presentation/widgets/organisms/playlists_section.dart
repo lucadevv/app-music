@@ -1,9 +1,9 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
+import 'package:music_app/core/presentation/widgets/molecules/shared_media_card.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
 import 'package:music_app/features/library/presentation/cubit/library_cubit.dart';
-import 'package:music_app/features/library/presentation/widgets/molecules/playlist_card.dart';
 import 'package:music_app/l10n/app_localizations.dart';
 
 /// Sección de playlists en la biblioteca.
@@ -60,8 +60,13 @@ class PlaylistsSection extends StatelessWidget {
               final playlist = playlists[index];
               return Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: PlaylistCard(
-                  playlist: playlist,
+                child: SharedMediaCard(
+                  title: playlist.name,
+                  subtitle: playlist.songCount > 0
+                      ? '${playlist.songCount} songs'
+                      : null,
+                  imageUrl: playlist.thumbnail,
+                  placeholderIcon: Icons.playlist_play,
                   onTap: () {
                     if (playlist.isUserCreated) {
                       context.router.push(

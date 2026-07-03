@@ -6,14 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
+import 'package:music_app/core/presentation/widgets/molecules/shared_media_card.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/mood_genre/domain/use_cases/get_mood_playlists_use_case.dart';
 
 import 'cubit/mood_genre_cubit.dart';
 import 'widgets/mood_genre_error_widget.dart';
 import 'widgets/mood_genre_listeners.dart';
 import 'widgets/mood_genre_loading_widget.dart';
-import 'widgets/mood_playlist_card_widget.dart';
 
 @RoutePage()
 class MoodGenreScreen extends StatefulWidget implements AutoRouteWrapper {
@@ -52,8 +53,10 @@ class _MoodGenreScreenState extends State<MoodGenreScreen> {
             if (state.response != null &&
                 state.response!.playlists.isNotEmpty) {
               final firstPlaylist = state.response!.playlists.first;
-              if (firstPlaylist.thumbnails.isNotEmpty) {
-                backgroundImageUrl = firstPlaylist.thumbnails.first.url;
+              if (firstPlaylist.thumbnail != null &&
+                  firstPlaylist.thumbnail!.isNotEmpty &&
+                  firstPlaylist.thumbnail!.first.isValidImageUrl) {
+                backgroundImageUrl = firstPlaylist.thumbnail!.first;
               }
             }
 
@@ -183,14 +186,28 @@ class _MoodGenreScreenState extends State<MoodGenreScreen> {
               ),
               delegate: SliverChildBuilderDelegate((context, index) {
                 final playlist = response.playlists[index];
-                return MoodPlaylistCardWidget(
-                  playlist: playlist,
+                return SharedMediaCard(
+                  title: playlist.title,
+                  subtitle: playlist.description,
+                  subtitle2:
+                      playlist.videoCount != null &&
+                          playlist.videoCount!.isNotEmpty
+                      ? '${playlist.videoCount} videos'
+                      : null,
+                  imageUrl:
+                      playlist.thumbnail != null &&
+                          playlist.thumbnail!.isNotEmpty
+                      ? playlist.thumbnail!.last
+                      : null,
+                  placeholderIcon: Icons.playlist_play,
                   onTap: () {
-                    // Navegar a la playlist usando el browseId
-                    if (playlist.browseId.isNotEmpty) {
-                      context.router.push(PlaylistRoute(id: playlist.browseId));
+                    if (playlist.hasValidPlaylistId) {
+                      context.router.push(
+                        PlaylistRoute(id: playlist.playlistId),
+                      );
                     }
                   },
+                  width: double.infinity,
                 );
               }, childCount: response.playlists.length),
             ),

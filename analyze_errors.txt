@@ -1,0 +1,28 @@
+Analyzing music_app_flutter...                                  
+
+warning • The field doesn't override an inherited getter or setter • lib/core/domain/entities/artist.dart:133:16 • override_on_non_overriding_member
+  error • The method 'SongListItem' isn't defined for the type 'SongListItemFromPlayable' • lib/core/presentation/widgets/song_list_item.dart:24:12 • undefined_method
+  error • The argument type 'AlbumSong' can't be assigned to the parameter type 'PlayableAudio'.  • lib/features/album/presentation/album_screen.dart:198:25 • argument_type_not_assignable
+warning • Duplicate export • lib/features/album/presentation/widgets/molecules/molecules.dart:3:8 • duplicate_export
+  error • The argument type 'AlbumSong' can't be assigned to the parameter type 'PlayableAudio'.  • lib/features/album/presentation/widgets/organisms/album_content.dart:35:25 • argument_type_not_assignable
+  error • The method '_buildSongsList' isn't defined for the type 'ArtistTopSongsOrganism' • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:34:9 • undefined_method
+  error • Expected a class member • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:50:5 • expected_class_member
+   info • Missing type annotation • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:50:12 • strict_top_level_inference
+   info • The method 'SliverList' should have a return type but doesn't • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:50:12 • always_declare_return_types
+   info • The variable name 'SliverList' isn't a lowerCamelCase identifier • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:50:12 • non_constant_identifier_names
+  error • 'SliverList' must have a method body because 'ArtistTopSongsOrganism' isn't abstract • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:50:12 • concrete_class_with_abstract_member
+   info • Missing type annotation • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:51:7 • strict_top_level_inference
+  error • Named parameters must be enclosed in curly braces ('{' and '}') • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:51:16 • named_parameter_outside_group
+  error • The default value of an optional parameter must be constant • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:51:18 • non_constant_default_value
+  error • Expected a method, getter, setter or operator declaration • lib/features/artist/presentation/widgets/organisms/artist_top_songs_organism.dart:92:1 • expected_executable
+  error • Target of URI doesn't exist: 'molecules/artist_album_card_molecule.dart' • lib/features/artist/presentation/widgets/widgets.dart:9:8 • uri_does_not_exist
+  error • Target of URI doesn't exist: 'molecules/artist_song_item_molecule.dart' • lib/features/artist/presentation/widgets/widgets.dart:11:8 • uri_does_not_exist
+  error • The method 'SongListItem' isn't defined for the type 'SongListItemWidget' • lib/features/home/presentation/widgets/organisms/home_content_widgets.dart:228:12 • undefined_method
+  error • Missing concrete implementations of 'getter abstract interface class PlayableAudio.audioDuration', 'getter abstract interface class PlayableAudio.bestThumbnail', and 'getter abstract interface class PlayableAudio.canPlay' • lib/features/library/data/models/library_models.dart:334:7 • non_abstract_class_inherits_abstract_member
+  error • The method 'SongListItemWithRemove' isn't defined for the type 'LikedSongsList' • lib/features/liked/presentation/widgets/organisms/liked_songs_list.dart:42:16 • undefined_method
+  error • The method 'PlayerRoute' isn't defined for the type '_PlaylistScreenState' • lib/features/playlist/presentation/playlist_screen.dart:173:9 • undefined_method
+  error • The method 'PlayerRoute' isn't defined for the type '_PlaylistScreenState' • lib/features/playlist/presentation/playlist_screen.dart:202:7 • undefined_method
+  error • Undefined class 'PlaylistTrack' • lib/features/playlist/presentation/widgets/organisms/playlist_scroll_content.dart:24:18 • undefined_class
+  error • Undefined class 'PlaylistTrack' • lib/features/playlist/presentation/widgets/organisms/playlist_scroll_content.dart:25:18 • undefined_class
+  error • The method 'SongListItemWithTrailing' isn't defined for the type 'QueueItem' • lib/features/queue/presentation/widgets/molecules/queue_item.dart:20:12 • undefined_method
+

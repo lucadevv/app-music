@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/downloads/domain/entities/downloaded_song.dart';
 
 /// Widget para mostrar una canción descargada en la lista
@@ -87,7 +88,7 @@ class DownloadedSongItemWidget extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: song.thumbnail != null
+        child: song.thumbnail != null && song.thumbnail!.isValidImageUrl
             ? CachedNetworkImage(
                 imageUrl: song.thumbnail!,
                 fit: BoxFit.cover,

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
 import 'package:music_app/features/favorites/presentation/widgets/favorite_button.dart';
 import 'package:music_app/features/library/data/models/library_models.dart';
@@ -68,9 +69,7 @@ class MiniPlayer extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Row(
                             children: [
-                              _TrackThumbnail(
-                                thumbnail: track.bestThumbnail?.url,
-                              ),
+                              _TrackThumbnail(thumbnail: track.bestThumbnail),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _TrackInfo(
@@ -158,7 +157,7 @@ class _TrackThumbnail extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: thumbnail != null && thumbnail!.isNotEmpty
+      child: thumbnail != null && thumbnail!.isValidImageUrl
           ? CachedNetworkImage(
               imageUrl: thumbnail!,
               width: 48,

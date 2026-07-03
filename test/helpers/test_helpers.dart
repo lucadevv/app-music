@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:music_app/core/domain/entities/song.dart';
 import 'package:music_app/core/utils/exeptions/app_exceptions.dart';
 import 'package:music_app/features/auth/data/models/oauth_request.dart';
 import 'package:music_app/features/auth/data/services/oauth_service.dart';
@@ -10,13 +11,16 @@ import 'package:music_app/features/auth/domain/entities/user.dart';
 import 'package:music_app/features/auth/domain/use_cases/oauth_sign_in_use_case.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
 import 'package:music_app/features/downloads/domain/entities/downloaded_song.dart';
-import 'package:music_app/features/home/domain/entities/chart_song.dart';
+import 'package:music_app/features/home/domain/entities/chart_playlist.dart';
 import 'package:music_app/features/home/domain/entities/home_content_item.dart';
 import 'package:music_app/features/home/domain/entities/home_response.dart';
 import 'package:music_app/features/home/domain/entities/home_section.dart';
 import 'package:music_app/features/home/domain/entities/mood_genre.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
 import 'package:music_app/features/player/domain/player_engine.dart';
+import 'package:music_app/features/player/domain/services/audio_session_controller.dart';
+import 'package:music_app/features/player/domain/strategies/network_playback_strategy.dart';
+import 'package:music_app/features/player/domain/strategies/offline_playback_strategy.dart';
 import 'package:music_app/features/search/domain/entities/album.dart' as album;
 import 'package:music_app/features/search/domain/entities/artist.dart'
     as artist;
@@ -35,7 +39,63 @@ class MockAppleSignInUseCase extends Mock implements AppleSignInUseCase {}
 
 class MockOAuthService extends Mock implements OAuthService {}
 
+class MockPlayerEngine extends Mock implements PlayerEngine {}
+
 // ============ Register Fallback Values ============
+
+/// Fake para mocktail — permite usar `any<Song>()` en tests
+class FakeSong extends Fake implements Song {
+  @override
+  String get videoId => 'fake_video_id';
+  @override
+  String get id => videoId;
+  @override
+  String get title => 'Fake Song';
+  @override
+  String get artist => 'Fake Artist';
+  @override
+  List<String> get artistNames => ['Fake Artist'];
+  @override
+  String? get album => null;
+  @override
+  String? get thumbnail => null;
+  @override
+  String? get highThumbnail => null;
+  @override
+  List<Thumbnail> get thumbnails => const [];
+  @override
+  String? get streamUrl => null;
+  @override
+  int get durationSeconds => 0;
+  @override
+  String get duration => '0:00';
+  @override
+  String? get views => null;
+  @override
+  bool get isExplicit => false;
+  @override
+  bool get inLibrary => false;
+  @override
+  String? get localPath => null;
+  @override
+  int? get fileSize => null;
+  @override
+  DateTime? get downloadedAt => null;
+  @override
+  String? get bestThumbnail => null;
+  @override
+  bool get canPlay => false;
+  @override
+  bool get isDownloaded => false;
+  @override
+  String get durationFormatted => '0:00';
+  @override
+  String? get fileSizeFormatted => null;
+  @override
+  Duration get audioDuration => Duration.zero;
+  @override
+  List<Object?> get props => [];
+}
 
 void registerFallbackValues() {
   registerFallbackValue(const SearchRequest(query: 'test'));
@@ -59,6 +119,7 @@ void registerFallbackValues() {
   registerFallbackValue(const ValidationException('test'));
   registerFallbackValue(const UnknownException('test'));
   registerFallbackValue(Duration.zero);
+  registerFallbackValue(FakeSong());
 }
 
 // ============ Test Exceptions ============
@@ -163,17 +224,14 @@ MoodGenre createTestMoodGenre({
   return MoodGenre(title: title, params: params);
 }
 
-ChartSong createTestChartSong({
-  String videoId = 'chart123',
-  String title = 'Chart Song',
-  String artist = 'Chart Artist',
+ChartPlaylist createTestChartPlaylist({
+  String playlistId = 'chart123',
+  String title = 'Chart Playlist',
 }) {
-  return ChartSong(
-    videoId: videoId,
+  return ChartPlaylist(
+    playlistId: playlistId,
     title: title,
-    artist: artist,
-    streamUrl: 'https://example.com/stream.m4a',
-    thumbnail: 'https://example.com/thumb.jpg',
+    thumbnails: createTestThumbnails(),
   );
 }
 
@@ -182,16 +240,34 @@ HomeContentItem createTestHomeContentItem({
   String? videoId = 'content123',
   String? playlistId,
 }) {
-  return HomeContentItem(
-    title: title,
-    videoId: videoId,
-    playlistId: playlistId,
-    thumbnails: createTestThumbnails(),
-    isExplicit: false,
-    artists: createTestArtists(),
-    views: '500000',
-    album: createTestAlbum(),
-  );
+  if (videoId != null && videoId.isNotEmpty) {
+    return HomeSongItem(
+      title: title,
+      videoId: videoId,
+      thumbnails: createTestThumbnails(),
+      isExplicit: false,
+      artists: createTestArtists(),
+      views: '500000',
+      album: createTestAlbum(),
+    );
+  } else if (playlistId != null && playlistId.isNotEmpty) {
+    return HomePlaylistItem(
+      title: title,
+      playlistId: playlistId,
+      thumbnails: createTestThumbnails(),
+      isExplicit: false,
+      artists: createTestArtists(),
+      views: '500000',
+    );
+  } else {
+    return HomeUnknownItem(
+      title: title,
+      thumbnails: createTestThumbnails(),
+      isExplicit: false,
+      artists: createTestArtists(),
+      views: '500000',
+    );
+  }
 }
 
 HomeSection createTestHomeSection({
@@ -211,11 +287,17 @@ Charts createTestCharts() {
   return Charts(
     topSongs: List.generate(
       3,
-      (i) => createTestChartSong(videoId: 'top$i', title: 'Top Song $i'),
+      (i) => createTestChartPlaylist(
+        playlistId: 'top$i',
+        title: 'Top Playlist $i',
+      ),
     ),
     trending: List.generate(
       3,
-      (i) => createTestChartSong(videoId: 'trend$i', title: 'Trending $i'),
+      (i) => createTestChartPlaylist(
+        playlistId: 'trend$i',
+        title: 'Trending Playlist $i',
+      ),
     ),
   );
 }
@@ -417,6 +499,9 @@ PlayerBlocBloc createTestPlayerBloc({
   MockPlayerRepository? mockRepository,
   MockManageHistoryUseCase? mockManageHistoryUseCase,
 }) {
+  // Registrar fallback para Song — necesario para mocktail con any<Song>()
+  registerFallbackValue(FakeSong());
+
   final repo = mockRepository ?? MockPlayerRepository();
   final historyUseCase = mockManageHistoryUseCase ?? MockManageHistoryUseCase();
 
@@ -436,9 +521,14 @@ PlayerBlocBloc createTestPlayerBloc({
     historyUseCase.finalizeCurrent,
   ).thenAnswer((_) async => const Right(null));
 
-  return PlayerBlocBloc(
-    engine: engine,
+  final sessionController = AudioSessionController(
+    engine: engine ?? MockPlayerEngine(),
     repository: repo,
     manageHistoryUseCase: historyUseCase,
+    playerHandler:
+        null, // Mocks are easier with null if we don't need real handler functionality in pure bloc tests
+    strategies: [OfflinePlaybackStrategy(repo), NetworkPlaybackStrategy()],
   );
+
+  return PlayerBlocBloc(sessionController: sessionController);
 }

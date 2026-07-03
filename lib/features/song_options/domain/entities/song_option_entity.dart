@@ -22,6 +22,17 @@ class SongOptionEntity extends Equatable {
     this.isDownloaded = false,
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si el autor está especificado
+  bool get hasValidArtist => artist.trim().isNotEmpty && artist.toLowerCase() != 'unknown artist';
+
+  /// Determina si esta canción tiene un archivo que se puede reproducir o stremear
+  bool get canPlay => streamUrl != null && streamUrl!.trim().isNotEmpty;
+
+  /// Indica si tiene un cover configurado
+  bool get hasValidThumbnail => thumbnail != null && thumbnail!.trim().isNotEmpty;
+
   SongOptionEntity copyWith({
     String? videoId,
     String? title,

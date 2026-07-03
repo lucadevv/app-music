@@ -5,19 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:music_app/core/bloc/base_bloc_mixin.dart';
 import 'package:music_app/core/data/offline/services/offline_service.dart';
-import 'package:music_app/core/domain/entities/song.dart';
 import 'package:music_app/core/utils/exeptions/app_exceptions.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
 import 'package:music_app/features/library/data/models/library_models.dart';
-import 'package:music_app/features/library/domain/use_cases/add_favorite_genre_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/add_favorite_playlist_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/add_favorite_song_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_favorite_genres_with_mapping_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_favorite_playlists_with_mapping_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/get_favorite_songs_with_mapping_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/remove_favorite_genre_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/remove_favorite_playlist_use_case.dart';
-import 'package:music_app/features/library/domain/use_cases/remove_favorite_song_use_case.dart';
+import 'package:music_app/features/library/domain/entities/favorite_type.dart';
+import 'package:music_app/features/library/domain/use_cases/load_favorites_use_case.dart';
+import 'package:music_app/features/library/domain/use_cases/toggle_favorite_use_case.dart';
 import 'package:music_app/features/offline/presentation/cubit/playlist_offline_cubit.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
 
@@ -26,17 +19,8 @@ part 'favorite_state.dart';
 /// Cubit para manejar favoritos con estado optimista
 /// Clean Architecture: UI → Cubit → UseCases → Repository → DataSource → API
 class FavoriteCubit extends Cubit<FavoriteState> with BaseBlocMixin {
-  final GetFavoriteSongsWithMappingUseCase _getFavoriteSongsWithMappingUseCase;
-  final GetFavoritePlaylistsWithMappingUseCase
-  _getFavoritePlaylistsWithMappingUseCase;
-  final GetFavoriteGenresWithMappingUseCase
-  _getFavoriteGenresWithMappingUseCase;
-  final AddFavoriteSongUseCase _addFavoriteSongUseCase;
-  final RemoveFavoriteSongUseCase _removeFavoriteSongUseCase;
-  final AddFavoritePlaylistUseCase _addFavoritePlaylistUseCase;
-  final RemoveFavoritePlaylistUseCase _removeFavoritePlaylistUseCase;
-  final AddFavoriteGenreUseCase _addFavoriteGenreUseCase;
-  final RemoveFavoriteGenreUseCase _removeFavoriteGenreUseCase;
+  final LoadFavoritesUseCase _loadFavoritesUseCase;
+  final ToggleFavoriteUseCase _toggleFavoriteUseCase;
   final PlaylistOfflineCubit _playlistOfflineCubit;
   final OfflineService _offlineService;
   final PlayerBlocBloc _playerBloc;
@@ -45,32 +29,13 @@ class FavoriteCubit extends Cubit<FavoriteState> with BaseBlocMixin {
   Stream<FavoriteEvent> get favoritesStream => _favoritesController.stream;
 
   FavoriteCubit({
-    required GetFavoriteSongsWithMappingUseCase
-    getFavoriteSongsWithMappingUseCase,
-    required GetFavoritePlaylistsWithMappingUseCase
-    getFavoritePlaylistsWithMappingUseCase,
-    required GetFavoriteGenresWithMappingUseCase
-    getFavoriteGenresWithMappingUseCase,
-    required AddFavoriteSongUseCase addFavoriteSongUseCase,
-    required RemoveFavoriteSongUseCase removeFavoriteSongUseCase,
-    required AddFavoritePlaylistUseCase addFavoritePlaylistUseCase,
-    required RemoveFavoritePlaylistUseCase removeFavoritePlaylistUseCase,
-    required AddFavoriteGenreUseCase addFavoriteGenreUseCase,
-    required RemoveFavoriteGenreUseCase removeFavoriteGenreUseCase,
+    required LoadFavoritesUseCase loadFavoritesUseCase,
+    required ToggleFavoriteUseCase toggleFavoriteUseCase,
     required PlaylistOfflineCubit playlistOfflineCubit,
     required OfflineService offlineService,
     required PlayerBlocBloc playerBloc,
-  }) : _getFavoriteSongsWithMappingUseCase = getFavoriteSongsWithMappingUseCase,
-       _getFavoritePlaylistsWithMappingUseCase =
-           getFavoritePlaylistsWithMappingUseCase,
-       _getFavoriteGenresWithMappingUseCase =
-           getFavoriteGenresWithMappingUseCase,
-       _addFavoriteSongUseCase = addFavoriteSongUseCase,
-       _removeFavoriteSongUseCase = removeFavoriteSongUseCase,
-       _addFavoritePlaylistUseCase = addFavoritePlaylistUseCase,
-       _removeFavoritePlaylistUseCase = removeFavoritePlaylistUseCase,
-       _addFavoriteGenreUseCase = addFavoriteGenreUseCase,
-       _removeFavoriteGenreUseCase = removeFavoriteGenreUseCase,
+  }) : _loadFavoritesUseCase = loadFavoritesUseCase,
+       _toggleFavoriteUseCase = toggleFavoriteUseCase,
        _playlistOfflineCubit = playlistOfflineCubit,
        _offlineService = offlineService,
        _playerBloc = playerBloc,
@@ -127,84 +92,33 @@ class FavoriteCubit extends Cubit<FavoriteState> with BaseBlocMixin {
     );
 
     try {
-      if (isCurrentlyFavorite) {
-        // Remover de favoritos
-        switch (type) {
-          case FavoriteType.song:
-            // Buscar songId del mapeo si no se proporcionó
-            final effectiveSongId =
-                songId ?? state.getSongIdForVideoId(videoId) ?? videoId;
-            // Use UseCase with Either pattern
-            final result = await _removeFavoriteSongUseCase(effectiveSongId);
-            result.fold(
-              (error) => throw error,
-              (_) => null, // Success
-            );
-            break;
-          case FavoriteType.playlist:
-            final playlistResult = await _removeFavoritePlaylistUseCase(
-              videoId,
-            );
-            playlistResult.fold((error) => throw error, (_) => null);
-            // Sincronizar offline: eliminar del caché (fire and forget)
-            _removePlaylistFromOfflineCache(videoId);
-            break;
-          case FavoriteType.genre:
-            final genreResult = await _removeFavoriteGenreUseCase(videoId);
-            genreResult.fold((error) => throw error, (_) => null);
-            break;
-        }
-      } else {
-        // Agregar a favoritos
-        switch (type) {
-          case FavoriteType.song:
-            debugPrint(
-              'FavoriteCubit: Adding song to favorites - videoId: $videoId, title: ${metadata?.title}',
-            );
-            // Create Song entity and use UseCase
-            final song = Song(
-              videoId: videoId,
-              title: metadata?.title ?? '',
-              artist: metadata?.artist ?? '',
-              thumbnail: metadata?.thumbnail,
-              durationSeconds: metadata?.duration ?? 0,
-              streamUrl: metadata?.streamUrl,
-            );
-            final result = await _addFavoriteSongUseCase(song);
-            result.fold(
-              (error) => throw error,
-              (_) => null, // Success
-            );
-            break;
-          case FavoriteType.playlist:
-            debugPrint(
-              'FavoriteCubit: Adding playlist to favorites - videoId: $videoId, name: ${playlistMetadata?.name}',
-            );
-            final addPlaylistResult = await _addFavoritePlaylistUseCase(
-              externalPlaylistId: videoId,
-              name: playlistMetadata?.name,
-              thumbnail: playlistMetadata?.thumbnail,
-              description: playlistMetadata?.description,
-              trackCount: playlistMetadata?.trackCount,
-            );
-            addPlaylistResult.fold((error) => throw error, (_) => null);
-            // Sincronizar offline: agregar al caché (fire and forget)
-            _syncPlaylistToOfflineCache(
-              externalPlaylistId: videoId,
-              metadata: playlistMetadata,
-            );
-            break;
-          case FavoriteType.genre:
-            debugPrint(
-              'FavoriteCubit: Adding genre to favorites - externalParams: $videoId',
-            );
-            final addGenreResult = await _addFavoriteGenreUseCase(
-              externalParams: videoId,
-            );
-            addGenreResult.fold((error) => throw error, (_) => null);
-            break;
-        }
-      }
+      final params = ToggleFavoriteParams(
+        type: type,
+        videoId: videoId,
+        isCurrentlyFavorite: isCurrentlyFavorite,
+        songId: songId ?? state.getSongIdForVideoId(videoId),
+        metadata: metadata,
+        playlistMetadata: playlistMetadata,
+      );
+
+      final result = await _toggleFavoriteUseCase(params);
+      
+      result.fold(
+        (error) => throw error,
+        (_) {
+          // Additional optimistic cache syncs
+          if (type == FavoriteType.playlist) {
+            if (isCurrentlyFavorite) {
+              _removePlaylistFromOfflineCache(videoId);
+            } else {
+              _syncPlaylistToOfflineCache(
+                externalPlaylistId: videoId,
+                metadata: playlistMetadata,
+              );
+            }
+          }
+        },
+      );
     } catch (e) {
       // Rollback en caso de error
       emit(
@@ -234,57 +148,34 @@ class FavoriteCubit extends Cubit<FavoriteState> with BaseBlocMixin {
     emit(state.copyWith(isLoading: true));
 
     try {
-      // Use UseCases with mapping for proper removal
-      final songsResult = await _getFavoriteSongsWithMappingUseCase(
-        page: 1,
-        limit: 100,
-      );
-      final playlistsResult = await _getFavoritePlaylistsWithMappingUseCase(
-        page: 1,
-        limit: 100,
-      );
-      final genresResult = await _getFavoriteGenresWithMappingUseCase(
-        page: 1,
-        limit: 100,
-      );
+      final result = await _loadFavoritesUseCase(page: 1, limit: 100);
 
       if (isClosed) return;
 
-      // Handle results with Either pattern
-      final songsResponse = songsResult.fold(
-        (error) => throw error,
-        (data) => data,
-      );
-      final playlistsResponse = playlistsResult.fold(
-        (error) => throw error,
-        (data) => data,
-      );
-      final genresResponse = genresResult.fold(
+      final data = result.fold(
         (error) => throw error,
         (data) => data,
       );
 
       emit(
         FavoriteState(
-          favoriteSongs: songsResponse.songs.map((s) => s.videoId).toSet(),
-          favoritePlaylists: playlistsResponse
+          favoriteSongs: data.songs.songs.map((s) => s.videoId).toSet(),
+          favoritePlaylists: data.playlists
               .map((p) => p.externalPlaylistId)
               .toSet(),
-          favoriteGenres: genresResponse.map((g) => g.externalParams).toSet(),
-          songIdByVideoId: songsResponse.songIdByVideoId,
+          favoriteGenres: data.genres.map((g) => g.externalParams).toSet(),
+          songIdByVideoId: data.songs.songIdByVideoId,
           isLoading: false,
         ),
       );
 
-      // Sincronizar playlists favoritas con caché offline (fire and forget)
-      // Convert entities to FavoritePlaylist for offline sync
-      final favoritePlaylists = playlistsResponse
+      final favoritePlaylists = data.playlists
           .map(
             (p) => FavoritePlaylist(
               id: p.id,
               playlistId: p.externalPlaylistId,
               externalPlaylistId: p.externalPlaylistId,
-              name: p.name ?? '',
+              name: p.name,
               description: p.description,
               thumbnail: p.thumbnail,
               trackCount: p.trackCount,

@@ -12,6 +12,14 @@ class LibraryStatsEntity extends Equatable {
     this.favoriteGenresCount = 0,
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si existe algún tipo de actividad o favoritos en la biblioteca
+  bool get hasAnyActivity => favoriteSongsCount > 0 || favoritePlaylistsCount > 0 || favoriteGenresCount > 0;
+
+  /// Suma globalizada de todos los elementos guardados por el usuario
+  int get totalFavorites => favoriteSongsCount + favoritePlaylistsCount + favoriteGenresCount;
+
   @override
   List<Object?> get props => [
     favoriteSongsCount,

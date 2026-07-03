@@ -18,6 +18,17 @@ class UserPlaylistEntity extends Equatable {
     this.isOwner = true,
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si la lista cuenta con descripción personalizada
+  bool get hasDescription => description != null && description!.trim().isNotEmpty;
+
+  /// Verifica si la lista tiene miniatura asignada
+  bool get hasThumbnail => thumbnail != null && thumbnail!.trim().isNotEmpty;
+
+  /// Indica si la lista de reproducción propia no posee canciones
+  bool get isEmpty => trackCount == 0;
+
   @override
   List<Object?> get props => [
     id,

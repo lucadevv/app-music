@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:music_app/core/presentation/widgets/molecules/shared_media_card.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/core/widgets/song_card.dart';
 import 'package:music_app/features/home/domain/entities/home_content_item.dart';
 import 'package:music_app/features/home/domain/entities/home_section.dart';
@@ -84,7 +86,7 @@ class HomeSectionWidget extends StatelessWidget {
               child: SongCard(
                 title: item.title,
                 artist: item.album?.name ?? 'Unknown Artist',
-                imageUrl: item.thumbnail!.url,
+                imageUrl: item.bestThumbnailUrl ?? '',
                 onTap: () => onSongTap(item),
               ),
             );
@@ -105,8 +107,14 @@ class HomeSectionWidget extends StatelessWidget {
             final item = section.contents[index];
             return Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: AlbumCardWidget(
-                item: item,
+              child: SharedMediaCard(
+                title: item.title,
+                subtitle: item.artists.isNotEmpty
+                    ? item.artists.map((a) => a.name).join(', ')
+                    : null,
+                imageUrl: item.bestThumbnailUrl,
+                placeholderIcon: Icons.album,
+                width: 160,
                 onTap: () => onAlbumTap?.call(item),
               ),
             );
@@ -127,8 +135,12 @@ class HomeSectionWidget extends StatelessWidget {
             final item = section.contents[index];
             return Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: PlaylistCardWidget(
-                item: item,
+              child: SharedMediaCard(
+                title: item.title,
+                subtitle: item.description,
+                imageUrl: item.bestThumbnailUrl,
+                placeholderIcon: Icons.playlist_play,
+                width: 160,
                 onTap: () => onPlaylistTap?.call(item),
               ),
             );

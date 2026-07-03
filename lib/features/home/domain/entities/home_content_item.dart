@@ -6,148 +6,151 @@ import 'package:music_app/features/search/domain/entities/thumbnail.dart';
 /// Tipo de contenido en las secciones del home
 enum HomeContentType { song, album, playlist, unknown }
 
-/// Entidad para items de contenido en las secciones de home
+/// Entidad base SELLADA (Sealed Class) para items del home
 ///
-/// Puede ser:
-/// - Canción: tiene videoId
-/// - Álbum: tiene browseId y type="Album"
-/// - Playlist: tiene playlistId
-///
-/// SOLID: Single Responsibility Principle (SRP)
-/// Responsable única: Representar un item de contenido del home
-class HomeContentItem extends Equatable {
+/// PATTERN: Sealed Class (Dart 3) - Permite Pattern Matching exhaustivo en la UI.
+/// Cumple con Open/Closed Principle y Liskov Substitution Principle.
+sealed class HomeContentItem extends Equatable {
   final String title;
-  final String? videoId;
-  final String? playlistId;
-  final String? browseId; // Para albums
-  final String? audioPlaylistId; // Para albums
-  final String? type; // "Album", etc.
-  final String? videoType; // "MUSIC_VIDEO_TYPE_ATV", etc.
   final List<Thumbnail> thumbnails;
   final bool isExplicit;
   final List<SearchArtist> artists;
   final String views;
-  final SearchAlbum? album;
-  final String? description; // Para playlists
-  final String?
-  streamUrl; // URL de streaming (viene del endpoint con include_stream_urls=true)
-  final Thumbnail?
-  thumbnail; // Thumbnail de mejor calidad (viene junto con stream_url)
 
   const HomeContentItem({
     required this.title,
     required this.thumbnails,
     required this.artists,
-    this.videoId,
-    this.playlistId,
-    this.browseId,
-    this.audioPlaylistId,
-    this.type,
-    this.videoType,
     this.isExplicit = false,
     this.views = '0',
-    this.album,
-    this.description,
-    this.streamUrl,
-    this.thumbnail,
   });
 
-  /// Determina el tipo de contenido basado en los IDs presentes
-  ///
-  /// PATTERN: Factory Method - deduce el tipo de forma limpia
-  HomeContentType get contentType {
-    if (videoId != null && videoId!.isNotEmpty) {
-      return HomeContentType.song;
-    }
-    if (browseId != null && browseId!.isNotEmpty) {
-      return HomeContentType.album;
-    }
-    if (playlistId != null && playlistId!.isNotEmpty) {
-      return HomeContentType.playlist;
-    }
-    return HomeContentType.unknown;
-  }
+  /// Tipo de contenido (legacy enum for backwards UI compatibility)
+  HomeContentType get contentType;
 
-  /// Verifica si es una canción reproducible
-  bool get isPlayable =>
-      contentType == HomeContentType.song && streamUrl != null;
+  String? get videoId => this is HomeSongItem ? (this as HomeSongItem).videoId : null;
+  String? get streamUrl => this is HomeSongItem ? (this as HomeSongItem).streamUrl : null;
+  String? get playlistId => this is HomePlaylistItem ? (this as HomePlaylistItem).playlistId : null;
+  String? get browseId => this is HomeAlbumItem ? (this as HomeAlbumItem).browseId : null;
+  String? get description => this is HomePlaylistItem ? (this as HomePlaylistItem).description : null;
+  SearchAlbum? get album => this is HomeSongItem ? (this as HomeSongItem).album : (this is HomeAlbumItem ? (this as HomeAlbumItem).album : null);
 
-  /// Verifica si es una canción (legacy - usar contentType)
-  bool get isSong => videoId != null && videoId!.isNotEmpty;
+  bool get isPlayable => this is HomeSongItem && (this as HomeSongItem).streamUrl != null;
+  bool get isSong => this is HomeSongItem;
+  bool get isPlaylist => this is HomePlaylistItem;
+  bool get isAlbum => this is HomeAlbumItem;
 
-  /// Verifica si es una playlist (legacy - usar contentType)
-  bool get isPlaylist => playlistId != null && playlistId!.isNotEmpty;
-
-  /// Verifica si es un álbum
-  bool get isAlbum => browseId != null && browseId!.isNotEmpty;
-
-  /// Método de Dominio: Retorna true si este item hace match con un string de búsqueda.
-  /// Evita que la UI tenga que implementar algoritmos de filtrado local.
   bool matchesQuery(String query) {
     if (query.trim().isEmpty) return true;
     final lowerQuery = query.toLowerCase();
-
-    final matchesTitle = title.toLowerCase().contains(lowerQuery);
-    final matchesArtist = artists.any(
-      (a) => a.name.toLowerCase().contains(lowerQuery),
-    );
-
-    return matchesTitle || matchesArtist;
+    return title.toLowerCase().contains(lowerQuery) ||
+        artists.any((a) => a.name.toLowerCase().contains(lowerQuery));
   }
 
-  /// Copia con nuevos valores (PATTERN: Builder / CopyWith)
-  HomeContentItem copyWith({
-    String? title,
-    String? videoId,
-    String? playlistId,
-    String? browseId,
-    String? audioPlaylistId,
-    String? type,
-    String? videoType,
-    List<Thumbnail>? thumbnails,
-    bool? isExplicit,
-    List<SearchArtist>? artists,
-    String? views,
-    SearchAlbum? album,
-    String? description,
-    String? streamUrl,
-    Thumbnail? thumbnail,
-  }) {
-    return HomeContentItem(
-      title: title ?? this.title,
-      videoId: videoId ?? this.videoId,
-      playlistId: playlistId ?? this.playlistId,
-      browseId: browseId ?? this.browseId,
-      audioPlaylistId: audioPlaylistId ?? this.audioPlaylistId,
-      type: type ?? this.type,
-      videoType: videoType ?? this.videoType,
-      thumbnails: thumbnails ?? this.thumbnails,
-      isExplicit: isExplicit ?? this.isExplicit,
-      artists: artists ?? this.artists,
-      views: views ?? this.views,
-      album: album ?? this.album,
-      description: description ?? this.description,
-      streamUrl: streamUrl ?? this.streamUrl,
-      thumbnail: thumbnail ?? this.thumbnail,
-    );
-  }
+  bool get hasDescription => description != null && description!.trim().isNotEmpty;
+  String get allArtistsNames => artists.map((a) => a.name).join(', ');
+  String? get bestThumbnailUrl => thumbnails.isNotEmpty ? thumbnails.last.url : null;
 
   @override
-  List<Object?> get props => [
-    title,
-    videoId,
-    playlistId,
-    browseId,
-    audioPlaylistId,
-    type,
-    videoType,
-    thumbnails,
-    isExplicit,
-    artists,
-    views,
-    album,
-    description,
-    streamUrl,
-    thumbnail,
-  ];
+  List<Object?> get props => [title, thumbnails, isExplicit, artists, views];
+}
+
+/// Entidad fuertemente tipada para Canciones en Home
+class HomeSongItem extends HomeContentItem {
+  @override
+  final String videoId;
+  @override
+  final String? streamUrl;
+  final Thumbnail? thumbnail; // Thumbnail de calidad asociado al stream
+  final String? videoType;
+  @override
+  final SearchAlbum? album;
+
+  const HomeSongItem({
+    required super.title,
+    required super.thumbnails,
+    required super.artists,
+    required this.videoId,
+    this.streamUrl,
+    this.thumbnail,
+    this.videoType,
+    this.album,
+    super.isExplicit,
+    super.views,
+  });
+
+  @override
+  HomeContentType get contentType => HomeContentType.song;
+
+  @override
+  String? get bestThumbnailUrl => thumbnail?.url ?? super.bestThumbnailUrl;
+
+  @override
+  List<Object?> get props => [...super.props, videoId, streamUrl, thumbnail, videoType, album];
+}
+
+/// Entidad fuertemente tipada para Álbumes en Home
+class HomeAlbumItem extends HomeContentItem {
+  @override
+  final String browseId;
+  final String? audioPlaylistId;
+  @override
+  final SearchAlbum? album;
+  final String? type;
+
+  const HomeAlbumItem({
+    required super.title,
+    required super.thumbnails,
+    required super.artists,
+    required this.browseId,
+    this.audioPlaylistId,
+    this.album,
+    this.type = 'Album',
+    super.isExplicit,
+    super.views,
+  });
+
+  @override
+  HomeContentType get contentType => HomeContentType.album;
+
+  @override
+  List<Object?> get props => [...super.props, browseId, audioPlaylistId, album, type];
+}
+
+/// Entidad fuertemente tipada para Playlists en Home
+class HomePlaylistItem extends HomeContentItem {
+  @override
+  final String playlistId;
+  @override
+  final String? description;
+
+  const HomePlaylistItem({
+    required super.title,
+    required super.thumbnails,
+    required super.artists,
+    required this.playlistId,
+    this.description,
+    super.isExplicit,
+    super.views,
+  });
+
+  @override
+  HomeContentType get contentType => HomeContentType.playlist;
+
+  @override
+  List<Object?> get props => [...super.props, playlistId, description];
+}
+
+/// Fallback para tipos desconocidos
+class HomeUnknownItem extends HomeContentItem {
+  const HomeUnknownItem({
+    required super.title,
+    required super.thumbnails,
+    required super.artists,
+    super.isExplicit,
+    super.views,
+  });
+
+  @override
+  HomeContentType get contentType => HomeContentType.unknown;
 }

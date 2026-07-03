@@ -16,6 +16,14 @@ class RelaxPlaylistEntity extends Equatable {
     this.thumbnail,
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si la categoría es válida para el enrutamiento visual
+  bool get hasValidCategory => category.trim().isNotEmpty;
+
+  /// Indica si tiene un cover configurado
+  bool get hasThumbnail => thumbnail != null && thumbnail!.trim().isNotEmpty;
+
   @override
   List<Object?> get props => [id, title, description, thumbnail, category];
 }

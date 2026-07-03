@@ -6,6 +6,7 @@ import 'package:music_app/l10n/app_localizations.dart';
 /// Molécula: Botones de acción del álbum
 class AlbumActionButtons extends StatelessWidget {
   final bool isLiked;
+  final bool isPlayingAlbum;
   final VoidCallback? onPlayPressed;
   final VoidCallback? onLikePressed;
   final VoidCallback? onDownloadPressed;
@@ -13,6 +14,7 @@ class AlbumActionButtons extends StatelessWidget {
 
   const AlbumActionButtons({
     required this.isLiked,
+    this.isPlayingAlbum = false,
     super.key,
     this.onDownloadPressed,
     this.onLikePressed,
@@ -32,8 +34,8 @@ class AlbumActionButtons extends StatelessWidget {
           Expanded(
             child: FilledButton.icon(
               onPressed: onPlayPressed,
-              icon: const Icon(Icons.play_arrow),
-              label: Text(l10n.play),
+              icon: Icon(isPlayingAlbum ? Icons.pause : Icons.play_arrow),
+              label: Text(isPlayingAlbum ? l10n.pause : l10n.play),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColorsDark.primary,
                 foregroundColor: AppColorsDark.onSurface,

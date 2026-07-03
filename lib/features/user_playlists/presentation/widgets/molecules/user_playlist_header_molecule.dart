@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/l10n/app_localizations.dart';
 
 class UserPlaylistHeaderMolecule extends StatelessWidget {
@@ -30,7 +31,7 @@ class UserPlaylistHeaderMolecule extends StatelessWidget {
           playlistName,
           style: const TextStyle(color: AppColorsDark.onSurface),
         ),
-        background: thumbnail != null
+        background: thumbnail != null && thumbnail.isValidImageUrl
             ? CachedNetworkImage(
                 imageUrl: thumbnail!,
                 fit: BoxFit.cover,

@@ -9,6 +9,7 @@ import 'package:music_app/features/library/domain/use_cases/add_favorite_song_us
 import 'package:music_app/features/library/domain/use_cases/add_song_to_user_playlist_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/create_user_playlist_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/delete_user_playlist_use_case.dart';
+import 'package:music_app/features/library/domain/use_cases/get_aggregated_library_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/get_favorite_genres_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/get_favorite_genres_with_mapping_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/get_favorite_playlists_use_case.dart';
@@ -19,10 +20,12 @@ import 'package:music_app/features/library/domain/use_cases/get_library_summary_
 import 'package:music_app/features/library/domain/use_cases/get_user_playlist_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/get_user_playlists_use_case.dart'
     as lib_usecase;
+import 'package:music_app/features/library/domain/use_cases/load_favorites_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/remove_favorite_genre_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/remove_favorite_playlist_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/remove_favorite_song_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/remove_song_from_user_playlist_use_case.dart';
+import 'package:music_app/features/library/domain/use_cases/toggle_favorite_use_case.dart';
 import 'package:music_app/features/library/domain/use_cases/update_user_playlist_use_case.dart';
 
 void registerLibraryFeature(GetIt getIt) {
@@ -119,6 +122,20 @@ void registerLibraryFeature(GetIt getIt) {
     );
   }
 
+  // Aggregated Use Case (for LibraryCubit SRP)
+  if (!getIt.isRegistered<GetAggregatedLibraryUseCase>()) {
+    getIt.registerLazySingleton<GetAggregatedLibraryUseCase>(
+      () => GetAggregatedLibraryUseCase(
+        offlineService: getIt(),
+        getLibrarySummaryUseCase: getIt(),
+        getFavoriteSongsUseCase: getIt(),
+        getFavoritePlaylistsUseCase: getIt(),
+        getFavoriteGenresUseCase: getIt(),
+        getUserPlaylistsUseCase: getIt(),
+      ),
+    );
+  }
+
   // Use Cases with Mapping (for FavoriteCubit)
   if (!getIt.isRegistered<GetFavoriteSongsWithMappingUseCase>()) {
     getIt.registerLazySingleton<GetFavoriteSongsWithMappingUseCase>(
@@ -135,6 +152,17 @@ void registerLibraryFeature(GetIt getIt) {
   if (!getIt.isRegistered<GetFavoritePlaylistsWithMappingUseCase>()) {
     getIt.registerLazySingleton<GetFavoritePlaylistsWithMappingUseCase>(
       () => GetFavoritePlaylistsWithMappingUseCase(getIt<LibraryRepository>()),
+    );
+  }
+
+  // Load Favorites Facade
+  if (!getIt.isRegistered<LoadFavoritesUseCase>()) {
+    getIt.registerLazySingleton<LoadFavoritesUseCase>(
+      () => LoadFavoritesUseCase(
+        getFavoriteSongsWithMappingUseCase: getIt(),
+        getFavoritePlaylistsWithMappingUseCase: getIt(),
+        getFavoriteGenresWithMappingUseCase: getIt(),
+      ),
     );
   }
 
@@ -160,6 +188,20 @@ void registerLibraryFeature(GetIt getIt) {
   if (!getIt.isRegistered<RemoveFavoritePlaylistUseCase>()) {
     getIt.registerLazySingleton<RemoveFavoritePlaylistUseCase>(
       () => RemoveFavoritePlaylistUseCase(getIt<LibraryRepository>()),
+    );
+  }
+
+  // Toggle Favorite Facade
+  if (!getIt.isRegistered<ToggleFavoriteUseCase>()) {
+    getIt.registerLazySingleton<ToggleFavoriteUseCase>(
+      () => ToggleFavoriteUseCase(
+        addFavoriteSongUseCase: getIt(),
+        removeFavoriteSongUseCase: getIt(),
+        addFavoritePlaylistUseCase: getIt(),
+        removeFavoritePlaylistUseCase: getIt(),
+        addFavoriteGenreUseCase: getIt(),
+        removeFavoriteGenreUseCase: getIt(),
+      ),
     );
   }
 

@@ -12,6 +12,14 @@ class OnboardingEntity extends Equatable {
     this.pages = const [],
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Indica si el onboarding cuenta con contenido predeterminado
+  bool get hasPages => pages.isNotEmpty;
+
+  /// Verifica si el usuario actual se encuentra en la pantalla final del recorrido
+  bool get isLastPage => pages.isNotEmpty && currentPage == pages.length - 1;
+
   OnboardingEntity copyWith({
     bool? isCompleted,
     int? currentPage,
@@ -39,6 +47,11 @@ class OnboardingPageEntity extends Equatable {
     required this.description,
     this.imageUrl,
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si la vista cuenta con un recurso visual válido (imagen / hero)
+  bool get hasImage => imageUrl != null && imageUrl!.trim().isNotEmpty;
 
   @override
   List<Object?> get props => [title, description, imageUrl];

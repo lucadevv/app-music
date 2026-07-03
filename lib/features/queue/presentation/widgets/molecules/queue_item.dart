@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:music_app/core/presentation/widgets/song_list_item.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
+
 import '../atoms/queue_item_trailing.dart';
 
 /// Molecule: Individual queue item with trailing actions
@@ -18,10 +19,8 @@ class QueueItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SongListItemWithTrailing(
-      title: track.title,
-      artist: track.artistsNames,
-      thumbnail: track.bestThumbnail?.url,
+    return SharedSongListTile.fromPlayable(
+      playable: track,
       trailing: QueueItemTrailing(
         duration: track.formattedDuration,
         onRemove: onRemove,

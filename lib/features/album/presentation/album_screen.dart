@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
+import 'package:music_app/core/presentation/widgets/song_list_item.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
 import 'package:music_app/features/album/domain/entities/album.dart';
 import 'package:music_app/features/album/domain/repositories/album_repository.dart';
@@ -16,6 +17,7 @@ import 'package:music_app/features/album/presentation/cubit/album_cubit.dart';
 import 'package:music_app/features/album/presentation/widgets/molecules/molecules.dart';
 import 'package:music_app/features/album/presentation/widgets/organisms/organisms.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
+import 'package:music_app/features/song_options/presentation/widgets/song_options_bottom_sheet.dart';
 
 @RoutePage()
 class AlbumScreen extends StatelessWidget implements AutoRouteWrapper {
@@ -41,109 +43,19 @@ class AlbumScreen extends StatelessWidget implements AutoRouteWrapper {
 
   @override
   Widget build(BuildContext context) {
-    return _AlbumView(albumId: albumId);
+    return _AlbumScreenContainer(albumId: albumId);
   }
 }
 
-class _AlbumView extends StatelessWidget {
+/// CONTAINER WIDGET
+/// Maneja la inyección, dependencias, BLoC State y Navegación (Routing).
+/// No contiene UI renderizada (colores, paddings, scaffolds).
+class _AlbumScreenContainer extends StatelessWidget {
   final String albumId;
 
-  const _AlbumView({required this.albumId});
+  const _AlbumScreenContainer({required this.albumId});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
-      body: BlocBuilder<AlbumCubit, AlbumState>(
-        builder: (context, state) {
-          if (state.status == AlbumStatus.loading) {
-            return const AlbumLoadingView();
-          }
-
-          if (state.status == AlbumStatus.failure) {
-            return AlbumErrorView(
-              errorMessage: state.errorMessage,
-              onRetry: () => context.read<AlbumCubit>().loadAlbum(albumId),
-            );
-          }
-
-          final album = state.album;
-          if (album == null) {
-            return Center(
-              child: Text(
-                'Álbum no encontrado',
-                style: TextStyle(
-                  color: AppColorsDark.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            color: AppColorsDark.primary,
-            onRefresh: () async {
-              await context.read<AlbumCubit>().loadAlbum(albumId);
-            },
-            child: _AlbumMainContent(
-              album: album,
-              state: state,
-              albumId: albumId,
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _AlbumMainContent extends StatelessWidget {
-  final Album album;
-  final AlbumState state;
-  final String albumId;
-
-  const _AlbumMainContent({
-    required this.album,
-    required this.state,
-    required this.albumId,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomScrollView(
-      slivers: [
-        // App Bar
-        AlbumAppBar(album: album, onBackPressed: () => context.router.pop()),
-
-        // Action buttons
-        SliverToBoxAdapter(
-          child: AlbumActionButtons(
-            isLiked: state.isLiked,
-            onPlayPressed: () => _playAllSongs(context, state.songs),
-            onLikePressed: () => context.read<AlbumCubit>().toggleLike(),
-          ),
-        ),
-
-        // Songs list
-        SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final song = state.songs[index];
-            return AlbumSongItem(
-              song: song,
-              onTap: () => _playSong(context, song, state.songs),
-            );
-          }, childCount: state.songs.length),
-        ),
-
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
-      ],
-    );
-  }
-
-  void _playSong(
-    BuildContext context,
-    AlbumSong song,
-    List<AlbumSong> allSongs,
-  ) {
+  void _handlePlaySong(BuildContext context, AlbumSong song, List<AlbumSong> allSongs) {
     final cubit = context.read<AlbumCubit>();
     final success = cubit.playSong(song, allSongs);
 
@@ -155,15 +67,183 @@ class _AlbumMainContent extends StatelessWidget {
     }
   }
 
-  void _playAllSongs(BuildContext context, List<AlbumSong> songs) {
+  void _handlePlayAllSongs(BuildContext context, List<AlbumSong> songs) {
     if (songs.isEmpty) return;
+    
+    final playerBloc = context.read<PlayerBlocBloc>();
+    final isPlayingAlbum = playerBloc.state.sourceId?.startsWith('album_$albumId') == true && playerBloc.state.isPlaying;
+    
+    if (isPlayingAlbum) {
+      playerBloc.add(const PauseEvent());
+      return;
+    } else if (playerBloc.state.sourceId?.startsWith('album_$albumId') == true) {
+      playerBloc.add(const PlayEvent());
+      return;
+    }
 
-    final nowPlayingData = context.read<AlbumCubit>().playAllAlbumSongs(songs);
+    final cubit = context.read<AlbumCubit>();
+    final nowPlayingData = cubit.playAllAlbumSongs(songs);
 
     if (nowPlayingData != null) {
       context.router.push(
         PlayerRoute(nowPlayingData: nowPlayingData, playAsSingle: false),
       );
     }
+  }
+
+  void _handleSongOptions(BuildContext context, AlbumSong song) {
+    SongOptionsBottomSheet.show(
+      context: context,
+      song: SongOptionsData(
+        videoId: song.videoId,
+        title: song.title,
+        artist: '',
+        thumbnail: song.thumbnail,
+        durationSeconds: song.durationSeconds,
+        isFavorite: false, // Update with actual state if available
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<PlayerBlocBloc, PlayerBlocState>(
+      builder: (context, playerState) {
+        final isPlayingAlbum = playerState.sourceId?.startsWith('album_$albumId') == true && playerState.isPlaying;
+        return BlocBuilder<AlbumCubit, AlbumState>(
+          builder: (context, state) {
+            return _AlbumPresentationalView(
+              state: state,
+              isPlayingAlbum: isPlayingAlbum,
+              onRetry: () => context.read<AlbumCubit>().loadAlbum(albumId),
+              onRefresh: () async => context.read<AlbumCubit>().loadAlbum(albumId),
+              onBackPressed: () => context.router.pop(),
+              onLikePressed: () => context.read<AlbumCubit>().toggleLike(),
+              onPlayAllPressed: () => _handlePlayAllSongs(context, state.songs),
+              onSongTap: (song) => _handlePlaySong(context, song, state.songs),
+              onOptionsTap: (song) => _handleSongOptions(context, song),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// PRESENTATIONAL VIEW
+/// Componente tonto (Dumb Component). No sabe nada de Cubit, BLoC o Auth.
+/// Solo recibe datos y callbacks por constructor y pinta la UI.
+class _AlbumPresentationalView extends StatelessWidget {
+  final AlbumState state;
+  final bool isPlayingAlbum;
+  final VoidCallback onRetry;
+  final Future<void> Function() onRefresh;
+  final VoidCallback onBackPressed;
+  final VoidCallback onLikePressed;
+  final VoidCallback onPlayAllPressed;
+  final Function(AlbumSong) onSongTap;
+  final Function(AlbumSong) onOptionsTap;
+
+  const _AlbumPresentationalView({
+    required this.state,
+    required this.isPlayingAlbum,
+    required this.onRetry,
+    required this.onRefresh,
+    required this.onBackPressed,
+    required this.onLikePressed,
+    required this.onPlayAllPressed,
+    required this.onSongTap,
+    required this.onOptionsTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D0D0D),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (state.status == AlbumStatus.loading) {
+      return const AlbumLoadingView();
+    }
+
+    if (state.status == AlbumStatus.failure) {
+      return AlbumErrorView(
+        errorMessage: state.errorMessage,
+        onRetry: onRetry,
+      );
+    }
+
+    final album = state.album;
+    if (album == null) {
+      return Center(
+        child: Text(
+          'Álbum no encontrado',
+          style: TextStyle(
+            color: AppColorsDark.onSurface.withValues(alpha: 0.7),
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: AppColorsDark.primary,
+      onRefresh: onRefresh,
+      child: _buildContent(album),
+    );
+  }
+
+  Widget _buildContent(Album album) {
+    return CustomScrollView(
+      slivers: [
+        // App Bar
+        AlbumAppBar(album: album, onBackPressed: onBackPressed),
+
+        // Action buttons
+        SliverToBoxAdapter(
+          child: AlbumActionButtons(
+            isLiked: state.isLiked,
+            isPlayingAlbum: isPlayingAlbum,
+            onPlayPressed: onPlayAllPressed,
+            onLikePressed: onLikePressed,
+          ),
+        ),
+
+        // Songs list
+        SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final song = state.songs[index];
+            return SharedSongListTile.fromPlayable(
+              playable: song,
+              onTap: () => onSongTap(song),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    song.formattedDuration,
+                    style: TextStyle(
+                      color: AppColorsDark.onSurface.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(
+                      Icons.more_vert,
+                      color: AppColorsDark.onSurface.withValues(alpha: 0.6),
+                    ),
+                    onPressed: () => onOptionsTap(song),
+                  ),
+                ],
+              ),
+            );
+          }, childCount: state.songs.length),
+        ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+      ],
+    );
   }
 }

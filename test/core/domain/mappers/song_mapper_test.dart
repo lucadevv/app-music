@@ -2,8 +2,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:music_app/core/domain/mappers/song_mapper.dart';
 import 'package:music_app/features/downloads/domain/entities/downloaded_song.dart';
-import 'package:music_app/features/home/domain/entities/chart_song.dart';
+import 'package:music_app/features/home/domain/entities/chart_playlist.dart';
 import 'package:music_app/features/search/domain/entities/song.dart' as search;
+import 'package:music_app/features/search/domain/entities/thumbnail.dart';
 
 void main() {
   group('SongMapper', () {
@@ -125,26 +126,43 @@ void main() {
       });
     });
 
-    group('fromChartSong', () {
-      test('should map ChartSong to Song correctly', () {
-        // Arrange
-        const chartSong = ChartSong(
-          videoId: 'chart123',
+    group('fromChartPlaylist', () {
+      test('should map ChartPlaylist to Song correctly', () {
+        const chartPlaylist = ChartPlaylist(
+          playlistId: 'chart123',
           title: 'Chart Topper',
-          artist: 'Chart Artist',
-          streamUrl: 'https://chart.stream',
-          thumbnail: 'https://example.com/chart.jpg',
+          thumbnails: [
+            Thumbnail(
+              url: 'https://example.com/chart.jpg',
+              width: 300,
+              height: 300,
+            ),
+          ],
         );
 
-        // Act
-        final result = SongMapper.fromChartSong(chartSong);
+        final result = SongMapper.fromChartPlaylist(chartPlaylist);
 
-        // Assert
         expect(result.videoId, 'chart123');
         expect(result.title, 'Chart Topper');
-        expect(result.artist, 'Chart Artist');
-        expect(result.streamUrl, 'https://chart.stream');
+        expect(result.artist, '');
         expect(result.thumbnail, 'https://example.com/chart.jpg');
+        expect(result.highThumbnail, 'https://example.com/chart.jpg');
+        expect(result.thumbnails.length, 1);
+      });
+
+      test('should handle empty thumbnails', () {
+        const chartPlaylist = ChartPlaylist(
+          playlistId: 'chart456',
+          title: 'No Thumb Playlist',
+          thumbnails: [],
+        );
+
+        final result = SongMapper.fromChartPlaylist(chartPlaylist);
+
+        expect(result.videoId, 'chart456');
+        expect(result.title, 'No Thumb Playlist');
+        expect(result.thumbnail, isNull);
+        expect(result.thumbnails, isEmpty);
       });
     });
 

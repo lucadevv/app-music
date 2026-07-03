@@ -2,8 +2,8 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
 import 'package:music_app/core/domain/entities/artist.dart';
+import 'package:music_app/core/presentation/widgets/molecules/shared_media_card.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
-import 'package:music_app/features/artist/presentation/widgets/molecules/artist_album_card_molecule.dart';
 
 class ArtistAlbumsOrganism extends StatelessWidget {
   final List<ArtistAlbum> albums;
@@ -56,9 +56,17 @@ class ArtistAlbumsOrganism extends StatelessWidget {
         itemCount: albums.length,
         itemBuilder: (context, index) {
           final album = albums[index];
-          return ArtistAlbumCardMolecule(
-            album: album,
-            onTap: () => router.push(AlbumRoute(albumId: album.id)),
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SharedMediaCard(
+              title: album.title,
+              subtitle: '${album.year} • ${album.songCount} songs',
+              imageUrl: album.thumbnail,
+              placeholderIcon: Icons.album,
+              width: 140,
+              imageHeight: 130,
+              onTap: () => router.push(AlbumRoute(albumId: album.id)),
+            ),
           );
         },
       ),

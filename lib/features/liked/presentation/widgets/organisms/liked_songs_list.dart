@@ -7,13 +7,17 @@ class LikedSongsList extends StatelessWidget {
   final List<FavoriteSong> songs;
   final bool isLoadingMore;
   final bool hasMore;
-  final void Function(FavoriteSong song)? onSongTap;
+  final String? currentTrackId;
+  final bool isPlaying;
+  final void Function(FavoriteSong song, int index)? onSongTap;
   final void Function(FavoriteSong song)? onRemove;
 
   const LikedSongsList({
     required this.songs,
     this.isLoadingMore = false,
     this.hasMore = false,
+    this.currentTrackId,
+    this.isPlaying = false,
     this.onSongTap,
     this.onRemove,
     super.key,
@@ -40,12 +44,17 @@ class LikedSongsList extends StatelessWidget {
         }
 
         final song = songs[index];
-        return SongListItemWithRemove(
-          title: song.title,
-          artist: song.artist,
-          thumbnail: song.thumbnail,
-          onTap: onSongTap != null ? () => onSongTap!(song) : null,
-          onRemove: onRemove != null ? () => onRemove!(song) : null,
+        final isCurrentTrack = song.videoId == currentTrackId;
+        
+        return SharedSongListTile.fromPlayable(
+          playable: song,
+          isCurrentTrack: isCurrentTrack,
+          isPlaying: isPlaying && isCurrentTrack,
+          onTap: onSongTap != null ? () => onSongTap!(song, index) : null,
+          trailing: onRemove != null ? IconButton(
+            icon: const Icon(Icons.close, color: AppColorsDark.onSurface54),
+            onPressed: () => onRemove!(song),
+          ) : null,
         );
       }, childCount: songs.length + (isLoadingMore || hasMore ? 1 : 0)),
     );

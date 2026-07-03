@@ -7,7 +7,7 @@ import 'package:music_app/core/domain/entities/artist.dart' as artist;
 import 'package:music_app/core/domain/entities/song.dart' as core;
 import 'package:music_app/features/album/domain/entities/album.dart' as album;
 import 'package:music_app/features/downloads/domain/entities/downloaded_song.dart';
-import 'package:music_app/features/home/domain/entities/chart_song.dart';
+import 'package:music_app/features/home/domain/entities/chart_playlist.dart';
 import 'package:music_app/features/library/data/models/library_models.dart';
 import 'package:music_app/features/library/domain/entities/library_entities.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
@@ -106,15 +106,19 @@ class SongMapper {
     );
   }
 
-  /// Crea una instancia de [core.Song] desde [ChartSong]
-  static core.Song fromChartSong(ChartSong song) {
+  /// Crea una instancia de [core.Song] desde [ChartPlaylist]
+  static core.Song fromChartPlaylist(ChartPlaylist playlist) {
     return core.Song(
-      videoId: song.videoId,
-      title: song.title,
-      artist: song.artist,
-      thumbnail: song.thumbnail,
-      highThumbnail: song.thumbnail,
-      streamUrl: song.streamUrl,
+      videoId: playlist.playlistId,
+      title: playlist.title,
+      artist: '',
+      thumbnail: playlist.bestThumbnail,
+      highThumbnail: playlist.bestThumbnail,
+      thumbnails: playlist.thumbnails
+          .map(
+            (t) => core.Thumbnail(url: t.url, width: t.width, height: t.height),
+          )
+          .toList(),
     );
   }
 

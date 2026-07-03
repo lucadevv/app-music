@@ -1,3 +1,4 @@
+import '../../../../core/data/models/song_model.dart';
 import '../../../../core/domain/entities/song.dart';
 import '../../domain/entities/recent_search.dart';
 
@@ -16,7 +17,7 @@ class RecentSearchModel extends RecentSearch {
     // Manejar songData que puede venir como Map o como objeto
     Song songData;
     if (json['songData'] != null) {
-      songData = Song.fromJson(json['songData'] as Map<String, dynamic>);
+      songData = SongModel.fromJson(json['songData'] as Map<String, dynamic>);
     } else {
       // Crear un objeto Song vacío si no hay songData
       songData = Song(
@@ -59,7 +60,7 @@ class RecentSearchModel extends RecentSearch {
       'id': id,
       'query': query,
       'videoId': videoId,
-      'songData': songData.toJson(),
+      'songData': SongModel.toJson(songData),
       'createdAt': createdAt.toIso8601String(),
       'lastSearchedAt': lastSearchedAt.toIso8601String(),
     };

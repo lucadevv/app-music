@@ -1,9 +1,10 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/app_router/app_routes.gr.dart';
+import 'package:music_app/core/presentation/widgets/song_list_item.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
 import 'package:music_app/features/recently_played/domain/entities/recently_played_song.dart';
-import 'package:music_app/features/recently_played/presentation/widgets/molecules/song_item_molecule.dart';
+import 'package:music_app/features/recently_played/presentation/widgets/atoms/song_trailing_icon_atom.dart';
 
 class RecentlyPlayedSongsOrganism extends StatelessWidget {
   final List<RecentlyPlayedSong> songs;
@@ -20,9 +21,10 @@ class RecentlyPlayedSongsOrganism extends StatelessWidget {
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final song = songs[index];
-        return SongItemMolecule(
-          song: song,
+        return SharedSongListTile.fromPlayable(
+          playable: song,
           onTap: () => _handlePlaySong(context, song),
+          trailing: const SongTrailingIconAtom(),
         );
       }, childCount: songs.length),
     );

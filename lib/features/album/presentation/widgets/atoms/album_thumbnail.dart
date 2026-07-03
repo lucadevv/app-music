@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 
 /// Átomo: Miniatura del álbum
 class AlbumThumbnail extends StatelessWidget {
@@ -23,7 +24,7 @@ class AlbumThumbnail extends StatelessWidget {
         width: size,
         height: size,
         color: AppColorsDark.primary,
-        child: thumbnailUrl != null
+        child: thumbnailUrl != null && thumbnailUrl.isValidImageUrl
             ? CachedNetworkImage(
                 imageUrl: thumbnailUrl!,
                 fit: BoxFit.cover,

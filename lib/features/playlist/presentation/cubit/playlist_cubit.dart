@@ -137,12 +137,11 @@ class PlaylistCubit extends Cubit<PlaylistState> with BaseBlocMixin {
       },
       (response) {
         if (isClosed) return;
-        // Filtrar tracks que tienen streamUrl válida
+        // Filtrar tracks válidos (no forzar streamUrl para dar cabida a offline/dynamic)
         final validTracks = response.tracks
             .where(
               (track) =>
-                  track.streamUrl != null &&
-                  track.streamUrl!.isNotEmpty &&
+                  track.videoId != null &&
                   track.isAvailable,
             )
             .toList();
@@ -219,15 +218,13 @@ class PlaylistCubit extends Cubit<PlaylistState> with BaseBlocMixin {
         ? state.allTracks
         : state.response!.tracks;
 
-    // Filtrar tracks que tienen streamUrl (ya viene del endpoint)
+    // Filtrar tracks válidos (sin exigir streamUrl directamente para permitir offline/estrategias)
     final validTracks = availableTracks
         .where(
           (track) =>
               track.videoId != null &&
               track.videoId!.isNotEmpty &&
-              track.isAvailable &&
-              track.streamUrl != null &&
-              track.streamUrl!.isNotEmpty,
+              track.isAvailable,
         )
         .toList();
 

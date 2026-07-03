@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'playable_audio.dart';
+
 /// Entidad de dominio unificada para una canción.
 ///
 /// Esta es la entidad canónica que debe usarse en toda la app.
@@ -10,14 +12,24 @@ import 'package:equatable/equatable.dart';
 /// - Presentación (UI)
 /// - Casos de uso (Use Cases)
 /// - Repositorios (interfaces de dominio)
-class Song extends Equatable {
+class Song extends Equatable implements PlayableAudio {
   /// Identificador único del video (YouTube videoId)
   final String videoId;
 
+  // --------- PlayableAudio Mappers ---------
+  @override
+  String get id => videoId;
+
+  @override
+  Duration get audioDuration => Duration(seconds: durationSeconds);
+  // -----------------------------------------
+
   /// Título de la canción
+  @override
   final String title;
 
   /// Nombre del artista principal
+  @override
   final String artist;
 
   /// Lista de nombres de artistas
@@ -36,6 +48,7 @@ class Song extends Equatable {
   final List<Thumbnail> thumbnails;
 
   /// URL de streaming (puede ser null si no se ha obtenido)
+  @override
   final String? streamUrl;
 
   /// Duración en segundos
@@ -124,12 +137,14 @@ class Song extends Equatable {
   }
 
   /// Obtiene la mejor URL de thumbnail disponible
+  @override
   String? get bestThumbnail =>
       highThumbnail ??
       thumbnail ??
       (thumbnails.isNotEmpty ? thumbnails.last.url : null);
 
   /// Indica si la canción tiene URL de streaming
+  @override
   bool get canPlay => streamUrl != null && streamUrl!.isNotEmpty;
 
   /// Indica si la canción está descargada localmente
@@ -154,66 +169,7 @@ class Song extends Equatable {
     return null;
   }
 
-  /// Convert the song to a JSON map for serialization
-  Map<String, dynamic> toJson() {
-    return {
-      'videoId': videoId,
-      'title': title,
-      'artist': artist,
-      'artistNames': artistNames,
-      'album': album,
-      'thumbnail': thumbnail,
-      'highThumbnail': highThumbnail,
-      'thumbnails': thumbnails.map((t) => t.toJson()).toList(),
-      'streamUrl': streamUrl,
-      'durationSeconds': durationSeconds,
-      'duration': duration,
-      'views': views,
-      'isExplicit': isExplicit,
-      'inLibrary': inLibrary,
-      'localPath': localPath,
-      'fileSize': fileSize,
-      'downloadedAt': downloadedAt?.toIso8601String(),
-    };
-  }
 
-  /// Create a Song from a JSON map
-  factory Song.fromJson(Map<String, dynamic> json) {
-    return Song(
-      videoId: json['videoId'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      artist: json['artist'] as String? ?? '',
-      artistNames:
-          (json['artistNames'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
-      album: json['album'] as String?,
-      thumbnail: json['thumbnail'] as String?,
-      highThumbnail: json['highThumbnail'] as String?,
-      thumbnails:
-          (json['thumbnails'] as List<dynamic>?)?.map((e) {
-            final map = e as Map<String, dynamic>;
-            return Thumbnail(
-              url: map['url'] as String? ?? '',
-              width: map['width'] as int? ?? 0,
-              height: map['height'] as int? ?? 0,
-            );
-          }).toList() ??
-          [],
-      streamUrl: json['streamUrl'] as String?,
-      durationSeconds: json['durationSeconds'] as int? ?? 0,
-      duration: json['duration'] as String? ?? '0:00',
-      views: json['views'] as String? ?? '0',
-      isExplicit: json['isExplicit'] as bool? ?? false,
-      inLibrary: json['inLibrary'] as bool? ?? false,
-      localPath: json['localPath'] as String?,
-      fileSize: json['fileSize'] as int?,
-      downloadedAt: json['downloadedAt'] != null
-          ? DateTime.parse(json['downloadedAt'] as String)
-          : null,
-    );
-  }
 
   @override
   List<Object?> get props => [

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/playlist/domain/entities/playlist_response.dart';
 import 'package:music_app/features/playlist/presentation/widgets/atoms/playlist_backdrop_widget.dart';
 import 'package:music_app/features/search/domain/entities/thumbnail.dart';
@@ -54,7 +55,7 @@ class PlaylistHeaderWidget extends StatelessWidget {
             children: [
               const Spacer(flex: 1),
               // Imagen de la playlist centrada
-              if (bestThumbnail != null)
+              if (bestThumbnail != null && bestThumbnail.url.isValidImageUrl)
                 Hero(
                   tag: 'playlist_${playlist.id}',
                   child: Container(

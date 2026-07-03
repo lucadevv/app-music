@@ -22,6 +22,17 @@ class Artist {
     this.albums = const [],
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si existe una biografía o descripción textual del artista
+  bool get hasDescription => description != null && description!.trim().isNotEmpty;
+
+  /// Indica si el perfil cuenta con las canciones más populares
+  bool get hasTopSongs => topSongs.isNotEmpty;
+
+  /// Indica si la discografía del artista se ha renderizado/descargado
+  bool get hasAlbums => albums.isNotEmpty;
+
   String get bestThumbnail => thumbnail ?? '';
 }
 

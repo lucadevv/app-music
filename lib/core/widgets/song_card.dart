@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 
 class SongCard extends StatelessWidget {
   final String title;
@@ -39,15 +40,20 @@ class SongCard extends StatelessWidget {
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(18),
-                child: CachedNetworkImage(
-                  imageUrl: imageUrl,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorWidget: (context, url, error) => Container(
-                    color: colorScheme.surfaceContainerHighest,
-                    child: const Icon(Icons.music_note),
-                  ),
-                ),
+                child: imageUrl.isValidImageUrl
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => Container(
+                          color: colorScheme.surfaceContainerHigh,
+                          child: const Icon(Icons.music_note),
+                        ),
+                      )
+                    : Container(
+                        color: colorScheme.surfaceContainerHigh,
+                        child: const Icon(Icons.music_note),
+                      ),
               ),
             ),
             const SizedBox(height: 12),

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/search/domain/entities/thumbnail.dart';
 
 /// Widget para mostrar el artwork del álbum con Hero animation
@@ -36,7 +37,7 @@ class PlayerArtworkWidget extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(36),
-              child: thumbnail != null
+              child: thumbnail != null && thumbnail!.url.isValidImageUrl
                   ? CachedNetworkImage(
                       imageUrl: thumbnail!.url,
                       width: double.infinity,

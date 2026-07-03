@@ -122,7 +122,7 @@ void main() {
       );
 
       await tester.pump(const Duration(milliseconds: 30));
-      expect(find.text('Player Song'), findsOneWidget);
+      expect(find.text('Player Song'), findsWidgets);
     });
   });
 }

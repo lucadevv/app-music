@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 import 'package:music_app/features/search/domain/entities/thumbnail.dart';
 
 /// Widget para el backdrop difuminado de la playlist
@@ -16,28 +17,26 @@ class PlaylistBackdropWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (thumbnail == null) {
+    if (thumbnail == null || !thumbnail!.url.isValidImageUrl) {
       return Container(color: const Color(0xFF0D0D0D));
     }
 
     return Positioned.fill(
-      child: thumbnail?.url != null
-          ? ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: CachedNetworkImageProvider(thumbnail!.url),
-                    fit: BoxFit.cover,
-                    colorFilter: ColorFilter.mode(
-                      AppColorsDark.surfaceDim.withValues(alpha: 0.7),
-                      BlendMode.darken,
-                    ),
-                  ),
-                ),
+      child: ImageFiltered(
+        imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+        child: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: CachedNetworkImageProvider(thumbnail!.url),
+              fit: BoxFit.cover,
+              colorFilter: ColorFilter.mode(
+                AppColorsDark.surfaceDim.withValues(alpha: 0.7),
+                BlendMode.darken,
               ),
-            )
-          : const SizedBox.expand(),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

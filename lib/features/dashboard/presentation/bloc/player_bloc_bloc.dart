@@ -1,27 +1,18 @@
 import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:music_app/core/services/audio_handler_service.dart';
 import 'package:music_app/features/player/domain/entities/now_playing_data.dart';
-import 'package:music_app/features/player/domain/player_engine.dart';
-import 'package:music_app/features/player/domain/repositories/player_repository.dart';
+import 'package:music_app/features/player/domain/services/audio_session_controller.dart';
 import 'package:music_app/features/player/domain/types/player_types.dart';
-import 'package:music_app/features/player/domain/usecases/manage_history_use_case.dart';
-import 'package:music_app/features/player/infrastructure/just_audio_player_engine.dart';
 import 'package:music_app/features/profile/presentation/cubit/profile_cubit.dart';
 
 part 'player_bloc_event.dart';
 part 'player_bloc_state.dart';
 
 class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
-  final AudioPlayerHandler? _playerHandler;
-  final PlayerRepository _repository;
-  final ManageHistoryUseCase _manageHistoryUseCase;
-
-  PlayerEngine? _engine;
-  bool _isEngineInitialized = false;
-  final PlayerEngine? _engineOverride;
+  final AudioSessionController _sessionController;
 
   ProfileCubit? _profileCubit;
   set profileCubit(ProfileCubit cubit) => _profileCubit = cubit;
@@ -30,17 +21,6 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
       StreamController<PlaylistPlaybackStartedEvent>.broadcast();
   Stream<PlaylistPlaybackStartedEvent> get playlistPlaybackStartedStream =>
       _playlistPlaybackStartedController.stream;
-
-  PlayerEngine get _playerEngine {
-    if (_engineOverride != null) return _engineOverride;
-    if (_engine != null) return _engine!;
-    final handler = _playerHandler;
-    if (handler == null) {
-      throw StateError('PlayerBlocBloc: playerHandler is required');
-    }
-    _engine = JustAudioPlayerEngine(handler.player);
-    return _engine!;
-  }
 
   String? _lastLoadedVideoId;
   String? _lastLoadedSourceId;
@@ -52,56 +32,33 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
   StreamSubscription? _bufferedPositionSubscription;
   StreamSubscription? _currentIndexSubscription;
 
-  PlayerBlocBloc({
-    required PlayerRepository repository,
-    required ManageHistoryUseCase manageHistoryUseCase,
-    AudioPlayerHandler? playerHandler,
-    PlayerEngine? engine,
-  }) : _playerHandler = playerHandler,
-       _engineOverride = engine,
-       _repository = repository,
-       _manageHistoryUseCase = manageHistoryUseCase,
-       super(PlayerBlocState.initial()) {
+  PlayerBlocBloc({required AudioSessionController sessionController})
+    : _sessionController = sessionController,
+      super(PlayerBlocState.initial()) {
     _registerEventHandlers();
-    if (_engineOverride != null) _initializeEngine();
+    _initializeEngineListeners();
   }
 
-  void _initializeEngine() {
-    if (_isEngineInitialized) return;
-    final engine = _engineOverride ?? _playerEngine;
-
-    _playerStateSubscription = engine.playerStateStream.listen(
+  void _initializeEngineListeners() {
+    _playerStateSubscription = _sessionController.playerStateStream.listen(
       (s) => add(AudioPlayerStateChangedEvent(s)),
     );
-    _positionSubscription = engine.positionStream.listen(
+    _positionSubscription = _sessionController.positionStream.listen(
       (p) => add(PositionChangedEvent(p)),
     );
-    _durationSubscription = engine.durationStream.listen(
+    _durationSubscription = _sessionController.durationStream.listen(
       (d) => add(DurationChangedEvent(d ?? Duration.zero)),
     );
-    _bufferedPositionSubscription = engine.bufferedPositionStream.listen(
-      (p) => add(BufferedPositionChangedEvent(p)),
-    );
-    _currentIndexSubscription = engine.currentIndexStream.listen(
+    _bufferedPositionSubscription = _sessionController.bufferedPositionStream
+        .listen((p) => add(BufferedPositionChangedEvent(p)));
+    _currentIndexSubscription = _sessionController.currentIndexStream.listen(
       (i) => add(CurrentIndexChangedEvent(i)),
     );
-
-    _isEngineInitialized = true;
-  }
-
-  void _ensureEngineInitialized() {
-    if (!_isEngineInitialized) _initializeEngine();
   }
 
   void _registerEventHandlers() {
-    on<PlayEvent>((_, emit) async {
-      _ensureEngineInitialized();
-      await _playerEngine.play();
-    });
-    on<PauseEvent>((_, emit) async {
-      _ensureEngineInitialized();
-      await _playerEngine.pause();
-    });
+    on<PlayEvent>((_, emit) async => _sessionController.play());
+    on<PauseEvent>((_, emit) async => _sessionController.pause());
     on<StopEvent>(_onStop);
     on<PlayPauseToggleEvent>(
       (_, emit) =>
@@ -110,10 +67,7 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
 
     on<NextTrackEvent>(_onNextTrack);
     on<PreviousTrackEvent>(_onPreviousTrack);
-    on<SeekEvent>((e, _) async {
-      _ensureEngineInitialized();
-      await _playerEngine.seek(e.position);
-    });
+    on<SeekEvent>((e, _) async => _sessionController.seek(e.position));
 
     on<PlayRequestEvent>(_onPlayRequest);
     on<LoadTrackEvent>(_onLoadTrack);
@@ -123,10 +77,23 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     on<AddMultipleToPlaylistEvent>(_onAddMultipleToPlaylist);
     on<RemoveFromPlaylistEvent>(_onRemoveFromPlaylist);
 
-    on<SetVolumeEvent>(_onSetVolume);
-    on<SetSpeedEvent>(_onSetSpeed);
-    on<SetLoopModeEvent>(_onSetLoopMode);
-    on<ToggleShuffleEvent>(_onToggleShuffle);
+    on<SetVolumeEvent>((e, emit) async {
+      await _sessionController.setVolume(e.volume);
+      emit(state.copyWith(volume: e.volume));
+    });
+    on<SetSpeedEvent>((e, emit) async {
+      await _sessionController.setSpeed(e.speed);
+      emit(state.copyWith(speed: e.speed));
+    });
+    on<SetLoopModeEvent>((e, emit) async {
+      await _sessionController.setLoopMode(e.loopMode);
+      emit(state.copyWith(loopMode: e.loopMode));
+    });
+    on<ToggleShuffleEvent>((_, emit) async {
+      final newState = !state.isShuffleEnabled;
+      await _sessionController.setShuffleModeEnabled(newState);
+      emit(state.copyWith(isShuffleEnabled: newState));
+    });
 
     on<AudioPlayerStateChangedEvent>(_onAudioPlayerStateChanged);
     on<PositionChangedEvent>(_onPositionChanged);
@@ -163,27 +130,22 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
   }
 
   Future<void> _onStop(_, Emitter<PlayerBlocState> emit) async {
-    _ensureEngineInitialized();
-    await _playerEngine.stop();
-    await _manageHistoryUseCase.finalizeCurrent();
+    await _sessionController.stop();
     emit(state.copyWith(position: Duration.zero));
   }
 
   Future<void> _onNextTrack(_, Emitter<PlayerBlocState> emit) async {
-    _ensureEngineInitialized();
-    if (state.canPlayNext) await _playerEngine.seekToNext();
+    if (state.canPlayNext) await _sessionController.seekToNext();
   }
 
   Future<void> _onPreviousTrack(_, Emitter<PlayerBlocState> emit) async {
-    _ensureEngineInitialized();
-    if (state.canPlayPrevious) await _playerEngine.seekToPrevious();
+    if (state.canPlayPrevious) await _sessionController.seekToPrevious();
   }
 
   Future<void> _onPlayRequest(
     PlayRequestEvent e,
     Emitter<PlayerBlocState> emit,
   ) async {
-    _ensureEngineInitialized();
     if (state.currentTrack?.videoId == e.track.videoId) {
       if (!state.isPlaying) add(const PlayEvent());
       return;
@@ -204,7 +166,6 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     LoadTrackEvent e,
     Emitter<PlayerBlocState> emit,
   ) async {
-    _ensureEngineInitialized();
     await _handleLoadTrack(e.track, e.sourceId, emit);
   }
 
@@ -224,27 +185,6 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     _lastLoadedSourceId = sourceId;
 
     try {
-      String? streamUrl = track.streamUrl;
-      final localPathResult = await _repository.getLocalAudioPath(
-        track.videoId,
-      );
-      localPathResult.fold(
-        (exception) {
-          // Error getting local path, emit(state.copyWith(isLoading: false, error: exception.message));
-          return;
-        },
-        (localPath) {
-          if (localPath != null && localPath.isNotEmpty) {
-            streamUrl = 'file://$localPath';
-          }
-        },
-      );
-
-      if (streamUrl == null || streamUrl!.isEmpty) {
-        emit(state.copyWith(isLoading: false, error: 'No se pudo obtener URL'));
-        return;
-      }
-
       emit(
         state.copyWith(
           isLoading: true,
@@ -256,20 +196,17 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
         ),
       );
 
-      final audioConfig = AudioSourceConfig(
-        id: track.videoId,
-        url: streamUrl!,
-        title: track.title,
-        artist: track.artistsNames,
-        duration: Duration(seconds: track.durationSeconds),
-        mediaItem: track.toMediaItem(),
-      );
-      await _playerEngine.setAudioSource(audioConfig, preload: false);
-      _updateHandlerMediaItem(track);
+      final streamUrl = await _sessionController.loadSingleTrack(track);
+
+      if (streamUrl == null) {
+        emit(state.copyWith(isLoading: false, error: 'No se pudo obtener URL'));
+        return;
+      }
 
       final duration = Duration(
         seconds: track.durationSeconds > 0 ? track.durationSeconds : 0,
       );
+
       emit(
         state.copyWith(
           playbackState: PlaybackState.playing,
@@ -284,11 +221,13 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
           error: null,
         ),
       );
-
-      await _playerEngine.play();
-      await _manageHistoryUseCase.startNewEntry(track.toSong());
-      unawaited(_repository.recordListen(track.videoId));
     } catch (e) {
+      if (e.toString().contains('Loading interrupted')) {
+        debugPrint(
+          'PlayerBloc: Loading interrupted (superseded by new track request)',
+        );
+        return;
+      }
       debugPrint('PlayerBloc: Error loading track: $e');
       emit(state.copyWith(isLoading: false, error: 'Error al cargar: $e'));
     } finally {
@@ -307,23 +246,20 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
   ) async {
     if (index < 0 || index >= state.playlist.length) return;
     final track = state.playlist[index];
-    if (track.streamUrl == null || track.streamUrl!.isEmpty) {
-      emit(state.copyWith(error: 'La canción no tiene URL'));
-      return;
-    }
 
     if (state.currentIndex == index &&
         state.currentTrack?.videoId == track.videoId) {
       if (!state.isPlaying) {
-        await _playerEngine.play();
+        await _sessionController.play();
         emit(state.copyWith(playbackState: PlaybackState.playing));
       }
       return;
     }
 
-    await _playerEngine.seek(Duration.zero, index: index);
-    await _playerEngine.play();
-    _updateHandlerMediaItem(track);
+    await _sessionController.seekToIndex(index);
+    await _sessionController.play();
+    _sessionController.updateHandlerMediaItem(track);
+
     emit(
       state.copyWith(
         playbackState: PlaybackState.playing,
@@ -338,79 +274,70 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     LoadPlaylistEvent e,
     Emitter<PlayerBlocState> emit,
   ) async {
-    _ensureEngineInitialized();
     if (e.playlist.isEmpty) {
       emit(state.copyWith(isLoading: false, error: 'Playlist vacía'));
       return;
     }
 
     final startIdx = (e.startIndex ?? 0).clamp(0, e.playlist.length - 1);
-    emit(state.copyWith(isLoading: true, error: null));
-
-    final sources = <AudioSourceConfig>[];
-    for (final t in e.playlist) {
-      if (t.streamUrl != null && t.streamUrl!.isNotEmpty) {
-        try {
-          sources.add(
-            AudioSourceConfig(
-              id: t.videoId,
-              url: t.streamUrl!,
-              title: t.title,
-              artist: t.artistsNames,
-              duration: Duration(seconds: t.durationSeconds),
-              mediaItem: t.toMediaItem(),
-            ),
-          );
-        } catch (_) {}
-      }
-    }
-
-    if (sources.isEmpty) {
-      emit(
-        state.copyWith(isLoading: false, error: 'No se pudieron cargar URLs'),
-      );
-      return;
-    }
-
-    await _playerEngine.setAudioSources(sources, preload: false);
-    await _playerEngine.setLoopMode(LoopModeType.all);
-
-    final first = e.playlist[startIdx];
-    _updateHandlerMediaItem(first);
-    final duration = Duration(
-      seconds: first.durationSeconds > 0 ? first.durationSeconds : 0,
-    );
+    final initialTrack = e.playlist.isNotEmpty ? e.playlist[startIdx] : null;
 
     emit(
       state.copyWith(
-        playbackState: PlaybackState.playing,
-        playlist: e.playlist,
-        isLoading: false,
-        connectionState: AudioConnectionState.connected,
-        currentIndex: startIdx,
-        currentTrack: first,
-        currentStreamUrl: first.streamUrl,
-        duration: duration,
-        position: Duration.zero,
-        sourceId: e.sourceId,
+        isLoading: true,
         error: null,
+        currentTrack: initialTrack,
+        sourceId: e.sourceId,
       ),
     );
 
-    await _playerEngine.seek(Duration.zero, index: startIdx);
-    await _playerEngine.play();
-    await _manageHistoryUseCase.startNewEntry(first.toSong());
-    unawaited(_repository.recordListen(first.videoId));
-    _playlistPlaybackStartedController.add(
-      PlaylistPlaybackStartedEvent(sourceId: e.sourceId),
-    );
+    try {
+      final loadedPlaylist = await _sessionController.loadPlaylist(
+        e.playlist,
+        startIndex: startIdx,
+      );
+
+      // Encontrar el verdaredro startIndex dentro del nuevo loadedPlaylist
+      int actualIndex = 0;
+      final originalTarget = e.playlist[startIdx];
+      final newIndex = loadedPlaylist.indexWhere(
+        (t) => t.videoId == originalTarget.videoId,
+      );
+      if (newIndex >= 0) actualIndex = newIndex;
+
+      final first = loadedPlaylist[actualIndex];
+      final duration = Duration(
+        seconds: first.durationSeconds > 0 ? first.durationSeconds : 0,
+      );
+
+      emit(
+        state.copyWith(
+          playbackState: PlaybackState.playing,
+          playlist: loadedPlaylist,
+          isLoading: false,
+          connectionState: AudioConnectionState.connected,
+          currentIndex: actualIndex,
+          currentTrack: first,
+          currentStreamUrl: first.streamUrl,
+          duration: duration,
+          position: Duration.zero,
+          sourceId: e.sourceId,
+          error: null,
+        ),
+      );
+
+      _playlistPlaybackStartedController.add(
+        PlaylistPlaybackStartedEvent(sourceId: e.sourceId),
+      );
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, error: e.toString()));
+    }
   }
 
   Future<void> _onPlayTrackAtIndex(
     PlayTrackAtIndexEvent e,
     Emitter<PlayerBlocState> emit,
   ) async {
-    _ensureEngineInitialized();
     await _handlePlayTrackAtIndex(e.index, emit);
   }
 
@@ -418,31 +345,20 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     AddToPlaylistEvent e,
     Emitter<PlayerBlocState> emit,
   ) async {
-    _ensureEngineInitialized();
-    if (e.track.streamUrl == null || e.track.streamUrl!.isEmpty) {
-      emit(state.copyWith(error: 'La canción no tiene URL'));
-      return;
-    }
     if (state.playlist.any((t) => t.videoId == e.track.videoId)) return;
 
-    await _playerEngine.addAudioSources([
-      AudioSourceConfig(
-        id: e.track.videoId,
-        url: e.track.streamUrl!,
-        title: e.track.title,
-        artist: e.track.artistsNames,
-        duration: Duration(seconds: e.track.durationSeconds),
-        mediaItem: e.track.toMediaItem(),
-      ),
-    ]);
-    emit(state.copyWith(playlist: [...state.playlist, e.track]));
+    try {
+      await _sessionController.addToQueue(e.track);
+      emit(state.copyWith(playlist: [...state.playlist, e.track]));
+    } catch (err) {
+      emit(state.copyWith(error: err.toString()));
+    }
   }
 
   Future<void> _onAddMultipleToPlaylist(
     AddMultipleToPlaylistEvent e,
     Emitter<PlayerBlocState> emit,
   ) async {
-    _ensureEngineInitialized();
     final existing = state.playlist.map((t) => t.videoId).toSet();
     final valid = e.tracks
         .where(
@@ -454,20 +370,7 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
         .toList();
     if (valid.isEmpty) return;
 
-    await _playerEngine.addAudioSources(
-      valid
-          .map(
-            (t) => AudioSourceConfig(
-              id: t.videoId,
-              url: t.streamUrl!,
-              title: t.title,
-              artist: t.artistsNames,
-              duration: Duration(seconds: t.durationSeconds),
-              mediaItem: t.toMediaItem(),
-            ),
-          )
-          .toList(),
-    );
+    await _sessionController.addMultipleToQueue(valid);
     emit(state.copyWith(playlist: [...state.playlist, ...valid]));
   }
 
@@ -475,7 +378,6 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     RemoveFromPlaylistEvent e,
     Emitter<PlayerBlocState> emit,
   ) async {
-    _ensureEngineInitialized();
     if (e.index < 0 || e.index >= state.playlist.length) return;
 
     final removed = state.playlist[e.index];
@@ -483,11 +385,11 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     final newPlaylist = List<NowPlayingData>.from(state.playlist)
       ..removeAt(e.index);
 
-    await _playerEngine.removeAudioSourceAt(e.index);
+    await _sessionController.removeFromQueue(e.index);
 
     if (wasCurrent) {
       if (newPlaylist.isEmpty) {
-        await _playerEngine.stop();
+        await _sessionController.stop();
         emit(
           state.copyWith(
             playlist: [],
@@ -505,7 +407,7 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
           ? newPlaylist.length - 1
           : e.index;
       final next = newPlaylist[safeIdx];
-      await _playerEngine.seek(Duration.zero, index: safeIdx);
+      await _sessionController.seekToIndex(safeIdx);
       emit(
         state.copyWith(
           playlist: newPlaylist,
@@ -519,45 +421,6 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     emit(state.copyWith(playlist: newPlaylist));
   }
 
-  Future<void> _onSetVolume(
-    SetVolumeEvent e,
-    Emitter<PlayerBlocState> emit,
-  ) async {
-    _ensureEngineInitialized();
-    final v = e.volume.clamp(0.0, 1.0);
-    await _playerEngine.setVolume(v);
-    emit(state.copyWith(volume: v));
-  }
-
-  Future<void> _onSetSpeed(
-    SetSpeedEvent e,
-    Emitter<PlayerBlocState> emit,
-  ) async {
-    _ensureEngineInitialized();
-    final s = e.speed.clamp(0.5, 2.0);
-    await _playerEngine.setSpeed(s);
-    emit(state.copyWith(speed: s));
-  }
-
-  Future<void> _onSetLoopMode(
-    SetLoopModeEvent e,
-    Emitter<PlayerBlocState> emit,
-  ) async {
-    _ensureEngineInitialized();
-    await _playerEngine.setLoopMode(e.loopMode);
-    emit(state.copyWith(loopMode: e.loopMode));
-  }
-
-  Future<void> _onToggleShuffle(
-    ToggleShuffleEvent _,
-    Emitter<PlayerBlocState> emit,
-  ) async {
-    _ensureEngineInitialized();
-    final newState = !state.isShuffleEnabled;
-    await _playerEngine.setShuffleModeEnabled(newState);
-    emit(state.copyWith(isShuffleEnabled: newState));
-  }
-
   Future<void> _onAudioPlayerStateChanged(
     AudioPlayerStateChangedEvent e,
     Emitter<PlayerBlocState> emit,
@@ -566,6 +429,7 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     final pbState = e.playerState.isPlaying
         ? PlaybackState.playing
         : PlaybackState.paused;
+
     emit(
       state.copyWith(
         playbackState: pbState,
@@ -595,7 +459,7 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
     Emitter<PlayerBlocState> emit,
   ) async {
     emit(state.copyWith(position: e.position));
-    unawaited(_manageHistoryUseCase.updatePlayedDuration(e.position.inSeconds));
+    await _sessionController.trackPositionUpdate(e.position);
   }
 
   Future<void> _onCurrentIndexChanged(
@@ -607,31 +471,20 @@ class PlayerBlocBloc extends Bloc<PlayerBlocEvent, PlayerBlocState> {
         : null;
 
     if (track != null && e.index != state.currentIndex) {
-      _updateHandlerMediaItem(track);
-      await _manageHistoryUseCase.startNewEntry(track.toSong());
-      unawaited(_repository.recordListen(track.videoId));
+      _sessionController.updateHandlerMediaItem(track);
+      await _sessionController.trackListenEvent(track);
     }
     emit(state.copyWith(currentIndex: e.index, currentTrack: track));
   }
 
   Future<void> _onResetPlayer(_, Emitter<PlayerBlocState> emit) async {
-    await _playerEngine.stop();
-    await _playerEngine.setAudioSources([]);
-    await _manageHistoryUseCase.finalizeCurrent();
+    await _sessionController.reset();
     emit(PlayerBlocState.initial());
-  }
-
-  void _updateHandlerMediaItem(NowPlayingData track) {
-    try {
-      _playerHandler?.updateNowPlaying(track);
-    } catch (e) {
-      debugPrint('PlayerBloc: Handler update error: $e');
-    }
   }
 
   @override
   Future<void> close() async {
-    await _manageHistoryUseCase.finalizeCurrent();
+    await _sessionController.dispose();
     await _playerStateSubscription?.cancel();
     await _positionSubscription?.cancel();
     await _durationSubscription?.cancel();

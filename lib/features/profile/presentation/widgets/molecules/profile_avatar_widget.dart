@@ -2,6 +2,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_app/core/theme/app_colors_dark.dart';
+import 'package:music_app/core/utils/extension/url_validation_extension.dart';
 
 /// Molécula que muestra la imagen de perfil del usuario o sus iniciales si no tiene foto.
 class ProfileAvatarWidget extends StatelessWidget {
@@ -16,7 +17,7 @@ class ProfileAvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (avatarUrl != null && avatarUrl!.isNotEmpty) {
+    if (avatarUrl != null && avatarUrl!.isValidImageUrl) {
       return _buildNetworkImage();
     }
     return _buildInitialsAvatar();

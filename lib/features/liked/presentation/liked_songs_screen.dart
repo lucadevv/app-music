@@ -88,7 +88,11 @@ class _LikedSongsScreenViewState extends State<_LikedSongsScreenView> {
               )
             else ...[
               _buildPlayButton(context, state),
-              _buildSongsList(context, state, l10n),
+              BlocBuilder<PlayerBlocBloc, PlayerBlocState>(
+                builder: (context, playerState) {
+                  return _buildSongsList(context, state, l10n, playerState);
+                },
+              ),
             ],
           ],
         );
@@ -120,9 +124,16 @@ class _LikedSongsScreenViewState extends State<_LikedSongsScreenView> {
     }
 
     return SliverToBoxAdapter(
-      child: PlayControls(
-        onPlayTap: () => _playAll(context, state.songs),
-        onShuffleTap: () {},
+      child: BlocBuilder<PlayerBlocBloc, PlayerBlocState>(
+        builder: (context, playerState) {
+          final isPlayingLikedSongs = playerState.sourceId == 'liked_songs' && playerState.isPlaying;
+          
+          return PlayControls(
+            isPlaying: isPlayingLikedSongs,
+            onPlayTap: () => _playAll(context, state.songs),
+            onShuffleTap: () {},
+          );
+        },
       ),
     );
   }
@@ -131,6 +142,7 @@ class _LikedSongsScreenViewState extends State<_LikedSongsScreenView> {
     BuildContext context,
     LikedSongsState state,
     AppLocalizations l10n,
+    PlayerBlocState playerState,
   ) {
     if (state.songs.isEmpty) {
       return SliverFillRemaining(
@@ -145,7 +157,9 @@ class _LikedSongsScreenViewState extends State<_LikedSongsScreenView> {
       songs: state.songs,
       isLoadingMore: state.isLoadingMore,
       hasMore: state.hasMoreSongs,
-      onSongTap: (song) => _playSong(context, song),
+      currentTrackId: playerState.currentTrack?.videoId,
+      isPlaying: playerState.isPlaying,
+      onSongTap: (song, index) => _playSong(context, song, index, state.songs),
       onRemove: (song) => _removeSong(context, song),
     );
   }
@@ -154,48 +168,54 @@ class _LikedSongsScreenViewState extends State<_LikedSongsScreenView> {
     if (songs.isEmpty) return;
 
     final playerBloc = context.read<PlayerBlocBloc>();
-    final playlist = songs.map(_mapFavoriteSongToNowPlaying).toList();
-
-    int startIndex = 0;
-    final currentTrack = playerBloc.state.currentTrack;
-
-    if (currentTrack != null) {
-      final currentIndex = playlist.indexWhere(
-        (track) => track.videoId == currentTrack.videoId,
-      );
-      if (currentIndex != -1) {
-        startIndex = currentIndex;
+    
+    // Check if we are already playing liked songs
+    if (playerBloc.state.sourceId == 'liked_songs') {
+      if (playerBloc.state.isPlaying) {
+        playerBloc.add(const PauseEvent());
+        return;
+      } else if (playerBloc.state.hasCurrentTrack) {
+        playerBloc.add(const PlayEvent());
+        return;
       }
     }
+
+    final playlist = songs.map(_mapFavoriteSongToNowPlaying).toList();
 
     playerBloc.add(
       LoadPlaylistEvent(
         playlist: playlist,
-        startIndex: startIndex,
-        sourceId: 'liked_songs',
-      ),
-    );
-
-    final nowPlayingData = playlist[startIndex];
-    context.router.push(
-      PlayerRoute(nowPlayingData: nowPlayingData, playAsSingle: false),
-    );
-  }
-
-  void _playSong(BuildContext context, FavoriteSong song) {
-    final playerBloc = context.read<PlayerBlocBloc>();
-    final nowPlayingData = _mapFavoriteSongToNowPlaying(song);
-
-    playerBloc.add(
-      LoadPlaylistEvent(
-        playlist: [nowPlayingData],
         startIndex: 0,
         sourceId: 'liked_songs',
       ),
     );
 
     context.router.push(
-      PlayerRoute(nowPlayingData: nowPlayingData, playAsSingle: true),
+      PlayerRoute(nowPlayingData: playlist[0], playAsSingle: false),
+    );
+  }
+
+  void _playSong(BuildContext context, FavoriteSong song, int index, List<FavoriteSong> songs) {
+    final playerBloc = context.read<PlayerBlocBloc>();
+    final nowPlayingData = _mapFavoriteSongToNowPlaying(song);
+
+    if (playerBloc.state.currentTrack?.videoId == song.videoId) {
+      playerBloc.add(const PlayPauseToggleEvent());
+      return;
+    }
+
+    final playlist = songs.map(_mapFavoriteSongToNowPlaying).toList();
+
+    playerBloc.add(
+      LoadPlaylistEvent(
+        playlist: playlist,
+        startIndex: index,
+        sourceId: 'liked_songs',
+      ),
+    );
+
+    context.router.push(
+      PlayerRoute(nowPlayingData: nowPlayingData, playAsSingle: false),
     );
   }
 

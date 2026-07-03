@@ -1,11 +1,34 @@
+import '../../../../core/domain/entities/playable_audio.dart';
 import '../../../search/domain/entities/album.dart' show SearchAlbum;
 import '../../../search/domain/entities/artist.dart' show SearchArtist;
 import '../../../search/domain/entities/thumbnail.dart' show Thumbnail;
 
 /// Entidad del dominio para una canción en una playlist
-class PlaylistTrack {
-  final String? videoId;
+class PlaylistTrack implements PlayableAudio {
+  // --------- PlayableAudio Mappers ---------
+  @override
+  String get id => videoId ?? '';
+
+  @override
+  String get artist => artists.isNotEmpty ? artists.first.name : 'Unknown Artist';
+
+  @override
+  Duration get audioDuration => Duration(seconds: durationSeconds);
+
+  @override
+  String? get bestThumbnail => thumbnail?.url ?? (thumbnails.isNotEmpty ? thumbnails.last.url : null);
+
+  @override
+  bool get canPlay => streamUrl != null && streamUrl!.isNotEmpty;
+  
+  @override
   final String title;
+  
+  @override
+  final String? streamUrl;
+  // -----------------------------------------
+
+  final String? videoId;
   final List<SearchArtist> artists;
   final SearchAlbum? album;
   final String? likeStatus;
@@ -18,10 +41,9 @@ class PlaylistTrack {
   final String? views;
   final String duration;
   final int durationSeconds;
-  final String?
-  streamUrl; // URL de streaming (viene del endpoint con include_stream_urls=true)
-  final Thumbnail?
-  thumbnail; // Thumbnail de mejor calidad (viene junto con stream_url)
+  
+  // Thumbnail de mejor calidad (viene junto con stream_url)
+  final Thumbnail? thumbnail;
 
   const PlaylistTrack({
     required this.title,
@@ -41,6 +63,20 @@ class PlaylistTrack {
     this.streamUrl,
     this.thumbnail,
   });
+
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Indica si hay múltiples artistas involucrados
+  bool get hasMultipleArtists => artists.length > 1;
+
+  /// Indica si el track pertenece a un álbum concreto y válido
+  bool get hasAlbum => album != null && album!.name.trim().isNotEmpty && album!.name.toLowerCase() != 'unknown';
+
+  /// Retorna un string con todos los artistas separados por coma
+  String get allArtistsNames => artists.map((a) => a.name).join(', ');
+
+  /// Indica si la canción está explícitamente marcada como 'Explicit'
+  bool get isExplicitContent => isExplicit;
 
   /// Método de Dominio: Retorna true si este track hace match con un string de búsqueda.
   bool matchesQuery(String query) {

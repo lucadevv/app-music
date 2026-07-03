@@ -7,6 +7,9 @@ import 'package:mocktail/mocktail.dart';
 import 'package:music_app/features/dashboard/presentation/bloc/player_bloc_bloc.dart';
 import 'package:music_app/features/player/domain/player_facade.dart';
 import 'package:music_app/features/player/domain/repositories/player_repository.dart';
+import 'package:music_app/features/player/domain/services/audio_session_controller.dart';
+import 'package:music_app/features/player/domain/strategies/network_playback_strategy.dart';
+import 'package:music_app/features/player/domain/strategies/offline_playback_strategy.dart';
 import 'package:music_app/features/player/domain/usecases/manage_history_use_case.dart';
 import 'package:music_app/features/player/presentation/widgets/organisms/mini_player.dart';
 import 'package:music_app/features/queue/presentation/queue_screen.dart';
@@ -75,35 +78,42 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('last tap wins across UI harness (fake engine)', (tester) async {
-    final engine = FakePlayerEngine();
-    final repo = MockPlayerRepository();
-    final historyUseCase = MockManageHistoryUseCase();
+    final mockEngine = FakePlayerEngine();
+    final mockRepository = MockPlayerRepository();
+    final mockHistoryUseCase = MockManageHistoryUseCase();
 
     when(
-      () => repo.getLocalAudioPath(any()),
+      () => mockRepository.getLocalAudioPath(any()),
     ).thenAnswer((_) async => const Right(null));
     when(
-      () => repo.recordListen(any()),
+      () => mockRepository.recordListen(any()),
     ).thenAnswer((_) async => const Right(null));
     when(
-      () => historyUseCase.startNewEntry(any()),
+      () => mockHistoryUseCase.startNewEntry(any()),
     ).thenAnswer((_) async => const Right('test_id'));
     when(
-      () => historyUseCase.updatePlayedDuration(any()),
+      () => mockHistoryUseCase.updatePlayedDuration(any()),
     ).thenAnswer((_) async => const Right(null));
     when(
-      historyUseCase.finalizeCurrent,
+      mockHistoryUseCase.finalizeCurrent,
     ).thenAnswer((_) async => const Right(null));
 
-    final bloc = PlayerBlocBloc(
-      engine: engine,
-      repository: repo,
-      manageHistoryUseCase: historyUseCase,
+    final sessionController = AudioSessionController(
+      engine: mockEngine,
+      repository: mockRepository,
+      manageHistoryUseCase: mockHistoryUseCase,
+      playerHandler: null,
+      strategies: [
+        OfflinePlaybackStrategy(mockRepository),
+        NetworkPlaybackStrategy(),
+      ],
     );
+
+    final bloc = PlayerBlocBloc(sessionController: sessionController);
     final facade = PlayerFacade(bloc);
     addTearDown(() async {
       await bloc.close();
-      await engine.dispose();
+      await mockEngine.dispose();
     });
 
     await tester.pumpWidget(

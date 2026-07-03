@@ -6,9 +6,7 @@ export 'atoms/artist_shimmer_atoms.dart';
 
 // Molecules
 export 'molecules/artist_action_buttons.dart';
-export 'molecules/artist_album_card_molecule.dart';
 export 'molecules/artist_loading_molecule.dart';
-export 'molecules/artist_song_item_molecule.dart';
 
 // Organisms
 export 'organisms/artist_albums_organism.dart';

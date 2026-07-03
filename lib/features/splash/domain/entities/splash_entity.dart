@@ -14,6 +14,11 @@ class SplashEntity extends Equatable {
     this.redirectRoute,
   });
 
+  // --- Lógica de Dominio Empresarial (Rich Model) ---
+
+  /// Verifica si la configuración inicial demanda un redireccionamiento forzoso
+  bool get hasRedirectRoute => redirectRoute != null && redirectRoute!.trim().isNotEmpty;
+
   @override
   List<Object?> get props => [
     isOnboardingCompleted,

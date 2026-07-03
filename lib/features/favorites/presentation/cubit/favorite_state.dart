@@ -1,6 +1,6 @@
 part of 'favorite_cubit.dart';
 
-enum FavoriteType { song, playlist, genre }
+
 
 class FavoriteEvent {
   final FavoriteType type;
